@@ -415,3 +415,30 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 
 	return nil
 }
+
+//IndexByAddr find an interface index to match the address
+func IndexByAddr(address Addr)(int,error){
+	return pkgHandle.IndexByAddr(address)
+}
+
+func (h *Handle) IndexByAddr(address Addr)(int,error){
+	req:=h.newNetlinkRequest(unix.RTM_GETADDR,unix.NLM_F_DUMP)
+	msg:=nl.NewIfInfomsg()
+	req.AddData(msg)
+
+	msgs,err:=req.Execute(unix.NETLINK_ROUTE,unix.RTM_NEWADDR)
+	if err!=nil{
+		return nil,err
+	}
+	for _,m:=msgs{
+		addr,msgFamily,ifindex,err:=paserAddr(m)
+		if err!=nil{
+			return 0,err
+		}
+
+		if address!=addr{
+			continue
+		}
+		return ifindex,nil
+	}
+}
