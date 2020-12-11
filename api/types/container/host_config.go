@@ -442,6 +442,9 @@ type HostConfig struct {
 	// ReadonlyPaths is the list of paths to be set as read-only inside the container (this overrides the default set of paths)
 	ReadonlyPaths []string
 
+	//bandwidth for each container
+	Bandwidth int64
+
 	// Run a custom init inside the container, if null, use the daemon's configured settings
 	Init *bool `json:",omitempty"`
 }
