@@ -434,3 +434,7 @@ func parseInterface(r api.CreateEndpointResponse) (*api.Interface, error) {
 
 	return outIf, nil
 }
+
+func (d *driver) newTc(bandwidth int64) error {
+	return nil
+}

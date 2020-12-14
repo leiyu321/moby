@@ -988,8 +988,68 @@ func (daemon *Daemon) initializeNetworking(container *container.Container) error
 		return err
 	}
 
+	if err := daemon.allocateTc(container); err != nil {
+		return err
+	}
+
 	return container.BuildHostnameFile()
 }
+
+func (daemon *Daemon) allocateTc(container *container.Container) error {
+	//TODO:host and container can still make up a tree
+	if container.HostConfig.NetworkMode.IsContainer() ||
+		container.HostConfig.NetworkMode.IsHost() ||
+		container.HostConfig.NetworkMode.IsNone() ||
+		container.HostConfig.NetworkMode.IsBridge() {
+		return fmt.Errorf("could not support allocating TC for this networkmode")
+	}
+
+	if daemon.netController == nil {
+		return fmt.Errorf("could not find netcontroller for tc allocating")
+	}
+
+	// if len(container.NetworkSettings.Networks) == 0 {
+	// 	return fmt.Errorf("could not find networksettings for tc allocating")
+	// }
+
+	// for netName, epConf := range container.NetworkSettings.Networks {
+	// 	id := getNetworkID(netName, epConf.EndpointSettings)
+
+	// 	n, err := daemon.FindNetwork(id)
+	// 	if err != nil {
+	// 		return fmt.Errorf("counld not find libnetwork network of this container:TC processing error")
+	// 	}
+
+	// 	// nid := n.ID()
+	// 	// net := daemon.netController.NetworkByID(nid)
+	// 	// d, cap := net.driver(true)
+	// 	// if err != nil {
+	// 	// 	return fmt.Errorf("failed to get driver during allocating TC")
+	// 	// }
+	// }
+
+	//TODO:Network->network->driver->d.advertiseaddress
+	// d, cap := daemon.netController.drvregistry.Driver("overlay")
+	// if d == nil {
+	// 	err := daemon.netController.loadDriver("overlay")
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	d, cap := daemon.netController.drvregistry.Driver("overlay")
+	// 	if d == nil {
+	// 		return fmt.Errorf("could not resolve driver overlay in registry")
+	// 	}
+	// }
+
+	return nil
+}
+
+// var (
+
+// )
+// func generateTcHandle() {
+
+// }
 
 func (daemon *Daemon) getNetworkedContainer(containerID, connectedContainerID string) (*container.Container, error) {
 	nc, err := daemon.GetContainer(connectedContainerID)

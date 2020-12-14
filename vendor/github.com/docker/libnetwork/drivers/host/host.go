@@ -104,3 +104,7 @@ func (d *driver) DiscoverNew(dType discoverapi.DiscoveryType, data interface{}) 
 func (d *driver) DiscoverDelete(dType discoverapi.DiscoveryType, data interface{}) error {
 	return nil
 }
+
+func (d *driver) newTc(bandwidth int64) error {
+	return nil
+}

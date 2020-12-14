@@ -417,28 +417,31 @@ func addrSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- AddrUpdate, done <-c
 }
 
 //IndexByAddr find an interface index to match the address
-func IndexByAddr(address Addr)(int,error){
+func IndexByAddr(address Addr) (int, error) {
 	return pkgHandle.IndexByAddr(address)
 }
 
-func (h *Handle) IndexByAddr(address Addr)(int,error){
-	req:=h.newNetlinkRequest(unix.RTM_GETADDR,unix.NLM_F_DUMP)
-	msg:=nl.NewIfInfomsg()
+func (h *Handle) IndexByAddr(address Addr) (int, error) {
+	req := h.newNetlinkRequest(unix.RTM_GETADDR, unix.NLM_F_DUMP)
+	msg := nl.NewIfInfomsg()
 	req.AddData(msg)
 
-	msgs,err:=req.Execute(unix.NETLINK_ROUTE,unix.RTM_NEWADDR)
-	if err!=nil{
-		return nil,err
+	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWADDR)
+	if err != nil {
+		return nil, err
 	}
-	for _,m:=msgs{
-		addr,msgFamily,ifindex,err:=paserAddr(m)
-		if err!=nil{
-			return 0,err
+
+	for _, m := range msgs {
+		addr, msgFamily, ifindex, err := paserAddr(m)
+		if err != nil {
+			return 0, err
 		}
 
-		if address!=addr{
+		if address != addr {
 			continue
 		}
-		return ifindex,nil
+		return ifindex, nil
 	}
+
+	return nil, fmt.Errorf("could find the interface for this address")
 }

@@ -143,6 +143,8 @@ type NetworkController interface {
 	StopDiagnostic()
 	// IsDiagnosticEnabled returns true if the diagnostic is enabled
 	IsDiagnosticEnabled() bool
+
+	NewTc(bandwidth int64) error
 }
 
 // NetworkWalker is a client provided function which will be used to walk the Networks.
@@ -1386,4 +1388,24 @@ func (c *controller) iptablesEnabled() bool {
 		enabled = true
 	}
 	return enabled
+}
+
+func (c *controller) newTc(bandwidth int64) error {
+	d, _ := c.drvRegistry.Driver("overlay")
+	if d == nil {
+		err := c.loadDriver("overlay")
+		if err != nil {
+			return err
+		}
+		d, _ := c.drvRegistry.Driver("overlay")
+		if d == nil {
+			return fmt.Errorf("could not resolve driver overlay in registry during TC allocating")
+		}
+	}
+
+	if err := d.newTc(bandwidth); err != nil {
+		return err
+	}
+
+	return nil
 }
