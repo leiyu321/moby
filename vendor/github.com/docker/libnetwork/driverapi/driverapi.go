@@ -89,7 +89,7 @@ type Driver interface {
 	IsBuiltIn() bool
 
 	//TODO:complete others container network mode except overlay
-	newTc(bandwidth int64) error
+	NewTc(bandwidth int64) error
 }
 
 // NetworkInfo provides a go interface for drivers to provide network

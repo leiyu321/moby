@@ -428,11 +428,11 @@ func (h *Handle) IndexByAddr(address Addr) (int, error) {
 
 	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWADDR)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	for _, m := range msgs {
-		addr, msgFamily, ifindex, err := paserAddr(m)
+		addr, _, ifindex, err := parseAddr(m)
 		if err != nil {
 			return 0, err
 		}
@@ -443,5 +443,5 @@ func (h *Handle) IndexByAddr(address Addr) (int, error) {
 		return ifindex, nil
 	}
 
-	return nil, fmt.Errorf("could find the interface for this address")
+	return 0, fmt.Errorf("could find the interface for this address")
 }

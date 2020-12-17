@@ -1403,7 +1403,9 @@ func (c *controller) newTc(bandwidth int64) error {
 		}
 	}
 
-	if err := d.newTc(bandwidth); err != nil {
+	fmt.Printf("Before d.NewTc:%d\n", bandwidth)
+
+	if err := d.NewTc(bandwidth); err != nil {
 		return err
 	}
 

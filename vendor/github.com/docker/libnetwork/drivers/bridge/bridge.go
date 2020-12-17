@@ -1521,6 +1521,6 @@ func electMacAddress(epConfig *endpointConfiguration, ip net.IP) net.HardwareAdd
 	return netutils.GenerateMACFromIP(ip)
 }
 
-func (d *driver) newTc(bandwidth int64) error {
+func (d *driver) NewTc(bandwidth int64) error {
 	return nil
 }

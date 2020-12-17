@@ -1155,7 +1155,7 @@ func (n *network) getMatchingSubnet(ip *net.IPNet) *subnet {
 }
 
 //newTc use d.advertiseaddr and bandwidth to add tc bandwidth
-func (d *driver) newTc(bandwidth int64) error {
+func (d *driver) NewTc(bandwidth int64) error {
 	if d.advertiseAddress == nil {
 		return fmt.Errorf("d.advertiseaddress is null")
 	}
