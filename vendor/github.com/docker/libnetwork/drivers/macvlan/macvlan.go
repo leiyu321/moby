@@ -115,3 +115,7 @@ func (d *driver) EventNotify(etype driverapi.EventType, nid, tableName, key stri
 func (d *driver) DecodeTableEntry(tablename string, key string, value []byte) (string, map[string]string) {
 	return "", nil
 }
+
+func (d *driver) NewTc(bandwidth int64) error {
+	return nil
+}

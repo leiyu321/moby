@@ -86,3 +86,7 @@ func (d *driver) ProgramExternalConnectivity(nid, eid string, options map[string
 func (d *driver) RevokeExternalConnectivity(nid, eid string) error {
 	return types.NotImplementedErrorf("not implemented")
 }
+
+func (d *driver) NewTc(bandwidth int64) error {
+	return nil
+}

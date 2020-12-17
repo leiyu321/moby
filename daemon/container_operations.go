@@ -1041,6 +1041,10 @@ func (daemon *Daemon) allocateTc(container *container.Container) error {
 	// 	}
 	// }
 
+	fmt.Println("In allocateTc:Before controller.NewTc")
+
+	if err:=daemon.netController.NewTc(container.HostConfig.Bandwidth)
+
 	return nil
 }
 

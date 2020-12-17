@@ -1390,7 +1390,7 @@ func (c *controller) iptablesEnabled() bool {
 	return enabled
 }
 
-func (c *controller) newTc(bandwidth int64) error {
+func (c *controller) NewTc(bandwidth int64) error {
 	d, _ := c.drvRegistry.Driver("overlay")
 	if d == nil {
 		err := c.loadDriver("overlay")
@@ -1403,11 +1403,13 @@ func (c *controller) newTc(bandwidth int64) error {
 		}
 	}
 
-	fmt.Printf("Before d.NewTc:%d\n", bandwidth)
+	fmt.Printf("TC:Before d.NewTc:%d\n", bandwidth)
 
 	if err := d.NewTc(bandwidth); err != nil {
 		return err
 	}
+
+	fmt.Println("TC:After d.NewTc")
 
 	return nil
 }
