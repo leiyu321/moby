@@ -1156,11 +1156,11 @@ func (n *network) getMatchingSubnet(ip *net.IPNet) *subnet {
 
 //newTc use d.advertiseaddr and bandwidth to add tc bandwidth
 func (d *driver) NewTc(bandwidth int64) error {
-	if d.advertiseAddress == nil {
+	if d.advertiseAddress == "" {
 		return fmt.Errorf("d.advertiseaddress is null")
 	}
 
-	if err := osl.AddTcBandwidth(net.ParseIP(d.advertiseAddress), bandwidth); err != nil {
+	if err := osl.AddTcBandwidth(net.ParseIP(d.advertiseAddress), uint64(bandwidth)); err != nil {
 		return err
 	}
 

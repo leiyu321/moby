@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/docker/libnetwork/ns"
 	"github.com/vishvananda/netlink"
-	"github.com/vishvananda/netns"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	DEFAULT_INTERVAL = 0x00010
 )
 
-var counter int64
+var counter uint32
 
 func init() {
 	counter = 0
@@ -34,22 +34,24 @@ func init() {
 // 	return nlh.IndexByAddr(ipAddr)
 // }
 
-func AddTcBandwidth(addr net.IP, bandwidth int64) (retErr error) {
+func AddTcBandwidth(addr net.IP, bandwidth uint64) (retErr error) {
 	if addr == nil {
 		return fmt.Errorf("address for TC is null! Please check it")
 	}
 
-	path := "/proc/self/ns/net"
-	n, err := netns.GetFromPath(path)
-	if err != nil {
-		return fmt.Errorf("failed get network namespace %q: %v", path, err)
-	}
-	defer n.close()
+	// path := "/proc/self/ns/net"
+	// n, err := netns.GetFromPath(path)
+	// if err != nil {
+	// 	return fmt.Errorf("failed get network namespace %q: %v", path, err)
+	// }
+	// defer n.Close()
 
-	nlh := ns.nlHandle()
+	nlh := ns.NlHandle()
 
 	// ifindex := FindIndexByAddr(n.nlHandle,addr)
-	if ifindex, err := nlh.IndexByAddr(&netlink.Addr{IPNet: addr}); err != nil {
+	ipNet := &net.IPNet{IP: addr, Mask: net.CIDRMask(32, 32)}
+	ifindex, err := nlh.IndexByAddr(&netlink.Addr{IPNet: ipNet})
+	if err != nil {
 		return err
 	}
 
@@ -60,8 +62,8 @@ func AddTcBandwidth(addr net.IP, bandwidth int64) (retErr error) {
 
 	// attrs := &netlink.ClassAttrs{LinkIndex: ifindex, Handle: DEAFULT_HANDLE + DEFAULT_INTERVAL*counter, Parent: DEFAULT_PARENT}
 	// cattrs := &netlink.HtbClassAttrs{Rate: bandwidth, Ceil: bandwidth}
-	htbclass := nlh.NewHtbClass(&netlink.ClassAttrs{LinkIndex: ifindex, Handle: DEAFULT_HANDLE + DEFAULT_INTERVAL*counter, Parent: DEFAULT_PARENT},
-		&netlink.HtbClassAttrs{Rate: bandwidth, Ceil: bandwidth})
+	htbclass := netlink.NewHtbClass(netlink.ClassAttrs{LinkIndex: ifindex, Handle: DEAFULT_HANDLE + DEFAULT_INTERVAL*counter, Parent: DEFAULT_PARENT},
+		netlink.HtbClassAttrs{Rate: bandwidth, Ceil: bandwidth})
 
 	counter += 1
 	defer func() {
