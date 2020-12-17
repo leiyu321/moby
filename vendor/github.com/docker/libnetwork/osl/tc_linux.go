@@ -48,7 +48,7 @@ func AddTcBandwidth(addr net.IP, bandwidth uint64) (retErr error) {
 
 	nlh := ns.NlHandle()
 
-	fmt.Println("TC:In AddTcBandwidth:Before IndexByAddr")
+	fmt.Println("TC:In AddTcBandwidth--Before IndexByAddr")
 
 	// ifindex := FindIndexByAddr(n.nlHandle,addr)
 	ipNet := &net.IPNet{IP: addr, Mask: net.CIDRMask(32, 32)}
@@ -62,7 +62,7 @@ func AddTcBandwidth(addr net.IP, bandwidth uint64) (retErr error) {
 	// 	return err
 	// }
 
-	fmt.Println("TC:After IndexByAddr:Before NewHtbClass")
+	fmt.Printf("TC:After IndexByAddr--Before NewHtbClass--ifindex:%d\n", ifindex)
 	// attrs := &netlink.ClassAttrs{LinkIndex: ifindex, Handle: DEAFULT_HANDLE + DEFAULT_INTERVAL*counter, Parent: DEFAULT_PARENT}
 	// cattrs := &netlink.HtbClassAttrs{Rate: bandwidth, Ceil: bandwidth}
 	htbclass := netlink.NewHtbClass(netlink.ClassAttrs{LinkIndex: ifindex, Handle: DEAFULT_HANDLE + DEFAULT_INTERVAL*counter, Parent: DEFAULT_PARENT},
@@ -81,6 +81,6 @@ func AddTcBandwidth(addr net.IP, bandwidth uint64) (retErr error) {
 		return err
 	}
 
-	fmt.Pirntln("TC:ClassAdd successfully")
+	fmt.Println("TC:ClassAdd successfully")
 	return nil
 }

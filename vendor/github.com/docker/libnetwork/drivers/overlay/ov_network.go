@@ -1160,7 +1160,7 @@ func (d *driver) NewTc(bandwidth int64) error {
 		return fmt.Errorf("d.advertiseaddress is null")
 	}
 
-	fmt.Printf("TC:In d.NewTc:%d", bandwidth)
+	fmt.Println("TC:In d.NewTc:%d", bandwidth)
 
 	if err := osl.AddTcBandwidth(net.ParseIP(d.advertiseAddress), uint64(bandwidth)); err != nil {
 		return err
