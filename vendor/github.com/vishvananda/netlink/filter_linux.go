@@ -806,11 +806,11 @@ func SerializeRtab(rtab [256]uint32) []byte {
 	return w.Bytes()
 }
 
-func HandleByAddr(Link link, parent uint32, addr net.IP) (uint32, error) {
+func HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, error) {
 	return pkgHandle.HandleByAddr(link, parent, addr)
 }
 
-func (h *Handle) HandleByAddr(Link link, parent uint32, addr net.IP) (uint32, error) {
+func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, error) {
 	req := h.newNetlinkRequest(unix.RTM_GETTFILTER, unix.NLM_F_DUMP)
 	msg := &nl.TcMsg{
 		Family: nl.FAMILY_ALL,
@@ -864,7 +864,7 @@ func (h *Handle) HandleByAddr(Link link, parent uint32, addr net.IP) (uint32, er
 								(sel.Keys[0].Val == uint32(addr[0]*65536+addr[1]*16+addr[2])) &&
 								(sel.Keys[1].Mask == 0xff000000) &&
 								(sel.Keys[1].Val == uint32(addr[3])) {
-								return msg.Handle, nil  
+								return msg.Handle, nil
 							}
 						}
 					}
