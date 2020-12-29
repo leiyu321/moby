@@ -805,3 +805,73 @@ func SerializeRtab(rtab [256]uint32) []byte {
 	_ = binary.Write(&w, native, rtab)
 	return w.Bytes()
 }
+
+func HandleByAddr(Link link, parent uint32, addr net.IP) (uint32, error) {
+	return pkgHandle.HandleByAddr(link, parent, addr)
+}
+
+func (h *Handle) HandleByAddr(Link link, parent uint32, addr net.IP) (uint32, error) {
+	req := h.newNetlinkRequest(unix.RTM_GETTFILTER, unix.NLM_F_DUMP)
+	msg := &nl.TcMsg{
+		Family: nl.FAMILY_ALL,
+		Parent: parent,
+	}
+	if link != nil {
+		base := link.Attrs()
+		h.ensureIndex(base)
+		msg.Ifindex = int32(base.Index)
+	}
+	req.AddData(msg)
+
+	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWTFILTER)
+	if err != nil {
+		return -1, err
+	}
+
+	for _, m := range msgs {
+		msg := nl.DeserializeTcMsg(m)
+
+		attrs, err := nl.ParseRouteAttr(m[msg.Len():])
+		if err != nil {
+			return -1, err
+		}
+
+		filterType := ""
+		for _, attr := range attrs {
+			switch attr.Attr.Type {
+			case nl.TCA_KIND:
+				filterType = string(attr.Value[:len(attr.Value)-1])
+			case nl.TCA_OPTIONS:
+				data, err := nl.ParseRouteAttr(attr.value)
+				if err != nil {
+					return -1, err
+				}
+				switch filterType {
+				case "u32":
+					native = nl.NativeEndian()
+					for _, datum := range data {
+						switch datum.Attr.Type {
+						case nl.TCA_U32_SEL:
+							sel := nl.DeserializeTcU32Sel(datum.Value)
+							if native != networkOrder {
+								for i, key := range sel.Keys {
+									sel.Keys[i].Mask = native.Unit32(htonl(key.Mask))
+									sel.Keys[i].Val = native.Unit32(htonl(key.Val))
+								}
+							}
+							if (sel.Nkeys == 2) &&
+								(sel.Keys[0].Mask == 0x00ffffff) &&
+								(sel.Keys[0].Val == uint32(addr[0]*65536+addr[1]*16+addr[2])) &&
+								(sel.Keys[1].Mask == 0xff000000) &&
+								(sel.Keys[1].Val == uint32(addr[3])) {
+								return msg.Handle, nil  
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return -1, fmt.Errorf("could not find handle for this filter")
+}
