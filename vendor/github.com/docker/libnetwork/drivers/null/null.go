@@ -1,6 +1,7 @@
 package null
 
 import (
+	"net"
 	"sync"
 
 	"github.com/docker/libnetwork/datastore"
@@ -105,5 +106,9 @@ func (d *driver) DiscoverDelete(dType discoverapi.DiscoveryType, data interface{
 }
 
 func (d *driver) NewTc(bandwidth int64) error {
+	return nil
+}
+
+func (d *driver) ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error {
 	return nil
 }

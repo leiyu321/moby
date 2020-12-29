@@ -88,8 +88,11 @@ type Driver interface {
 	// IsBuiltIn returns true if it is a built-in driver
 	IsBuiltIn() bool
 
-	//TODO:complete others container network mode except overlay
+	//TODO:complete others container network mode except overlay,desperated
 	NewTc(bandwidth int64) error
+
+	// complete TC functions
+	ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error
 }
 
 // NetworkInfo provides a go interface for drivers to provide network
