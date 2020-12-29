@@ -144,7 +144,10 @@ type NetworkController interface {
 	// IsDiagnosticEnabled returns true if the diagnostic is enabled
 	IsDiagnosticEnabled() bool
 
+	//adaptTC,desperated
 	NewTc(bandwidth int64) error
+
+	// AdaptTc(containerid string, bandwidth int64) error
 }
 
 // NetworkWalker is a client provided function which will be used to walk the Networks.
@@ -180,6 +183,7 @@ type controller struct {
 	keys                   []*types.EncryptionKey
 	clusterConfigAvailable bool
 	DiagnosticServer       *diagnostic.Server
+	handlePool             *sync.Pool
 	sync.Mutex
 }
 
@@ -255,8 +259,20 @@ func New(cfgOptions ...config.Option) (NetworkController, error) {
 		return nil, err
 	}
 
+	c.initHandlerPool()
+
 	setupArrangeUserFilterRule(c)
 	return c, nil
+}
+
+func (c *controller) initHandlerPool() {
+	var i uint16 = 1
+	c.handlePool = &sync.Pool{
+		New: func() interface{} {
+			i++
+			return i
+		},
+	}
 }
 
 func (c *controller) SetClusterProvider(provider cluster.Provider) {
@@ -1016,6 +1032,14 @@ func (c *controller) addNetwork(n *network) error {
 
 	n.startResolver()
 
+	if n.networkType == "overlay" {
+		n.minor = c.handlePool.Get().(uint16)
+		n.initClassPool()
+		if err := n.initTc(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -1405,6 +1429,7 @@ func (c *controller) NewTc(bandwidth int64) error {
 
 	fmt.Printf("TC:Before d.NewTc:%d\n", bandwidth)
 
+	// driver, ok := d.(overlay.driver) --> undefined overlay.driver
 	if err := d.NewTc(bandwidth); err != nil {
 		return err
 	}

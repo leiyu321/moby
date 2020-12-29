@@ -11,6 +11,7 @@ import (
 	"github.com/docker/libnetwork/ipamapi"
 	"github.com/docker/libnetwork/netlabel"
 	"github.com/docker/libnetwork/options"
+	"github.com/docker/libnetwork/osl"
 	"github.com/docker/libnetwork/types"
 	"github.com/sirupsen/logrus"
 )
@@ -75,6 +76,10 @@ type endpoint struct {
 	dbExists          bool
 	serviceEnabled    bool
 	loadBalancer      bool
+	major             uint16
+	minor             uint16
+	rate              uint64
+	ceil              uint64
 	sync.Mutex
 }
 
@@ -889,6 +894,13 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 		return nil
 	}
 
+	if n.networkType == "overlay" {
+		n.classPool.Put(ep.minor)
+		if err = ep.deleteTc(); err != nil {
+			return err
+		}
+	}
+
 	if err := driver.DeleteEndpoint(n.id, epid); err != nil {
 		if _, ok := err.(types.ForbiddenError); ok {
 			return err
@@ -1229,4 +1241,56 @@ func (c *controller) cleanupLocalEndpoints() {
 			n.getEpCnt().setCnt(uint64(len(epl)))
 		}
 	}
+}
+
+// EndpointBandwidth function returns an option setter for the endpoint TC rate and ceil
+func EndpointBandwidth(bandwidth int64) EndpointOption {
+	return func(ep *endpoint) {
+		ep.rate = bandwidth
+		ep.ceil = bandwidth
+	}
+}
+
+func (ep *endpoint) initTc() error {
+	n := ep.getNetwork()
+	d, err := n.driver(true)
+	if err != nil {
+		return err
+	}
+
+	if n.networkType != "overlay" {
+		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_CLASS_ADD, ep.major, ep.minor, 1, n.minor, 0, *(ep.iface.addr), ep.rate, ep.ceil); err != nil {
+		return err
+	}
+
+	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, 1, n.minor, 10, *(ep.iface.addr), 0, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ep *endpoint) deleteTc() error {
+	n := ep.getNetwork()
+	d, err := n.driver(true)
+	if err != nil {
+		return err
+	}
+
+	if n.networkType != "overlay" {
+		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, 1, n.minor, 10, *(ep.iface.addr), 0, 0); err != nil {
+		return err
+	}
+
+	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, 1, n.minor, 0, *(ep.iface.addr), ep.rate, ep.ceil); err != nil {
+		return err
+	}
+
+	return nil
 }

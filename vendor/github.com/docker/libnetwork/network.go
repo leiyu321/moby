@@ -19,6 +19,7 @@ import (
 	"github.com/docker/libnetwork/netutils"
 	"github.com/docker/libnetwork/networkdb"
 	"github.com/docker/libnetwork/options"
+	"github.com/docker/libnetwork/osl"
 	"github.com/docker/libnetwork/types"
 	"github.com/sirupsen/logrus"
 )
@@ -234,6 +235,8 @@ type network struct {
 	configFrom       string
 	loadBalancerIP   net.IP
 	loadBalancerMode string
+	minor            uint16
+	classPool        *sync.Pool
 	sync.Mutex
 }
 
@@ -1116,6 +1119,13 @@ func (n *network) deleteNetwork() error {
 		return fmt.Errorf("failed deleting network: %v", err)
 	}
 
+	if n.networkType == "overlay" {
+		n.getController().handlePool.Put(n.minor)
+		if err := n.deleteTc(); err != nil {
+			return err
+		}
+	}
+
 	if err := d.DeleteNetwork(n.ID()); err != nil {
 		// Forbidden Errors should be honored
 		if _, ok := err.(types.ForbiddenError); ok {
@@ -1143,6 +1153,14 @@ func (n *network) addEndpoint(ep *endpoint) error {
 	if err != nil {
 		return types.InternalErrorf("failed to create endpoint %s on network %s: %v",
 			ep.Name(), n.Name(), err)
+	}
+
+	if n.networkType == "overlay" {
+		ep.major = n.minor
+		ep.minor = n.classPool.Get().(uint16)
+		if err = ep.initTc(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -2241,5 +2259,57 @@ func (n *network) deleteLoadBalancerSandbox() error {
 	if err := c.SandboxDestroy(sandboxName); err != nil {
 		return fmt.Errorf("Failed to delete %s sandbox: %v", sandboxName, err)
 	}
+	return nil
+}
+
+func (n *network) initClassPool() {
+	var i uint16 = 0
+	n.classPool = &sync.Pool{
+		New: func() interface{} {
+			i++
+			return i
+		},
+	}
+}
+
+func (n *network) initTc() error {
+	d, err := n.driver(true)
+	if err != nil {
+		return err
+	}
+
+	if n.networkType != "overlay" {
+		return fmt.Errorf("Driver is not overlay! Could not init class and qdisc for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_CLASS_ADD, 1, n.minor, 1, 0, 0, nil, 1024*1024*100, 1024*1024*100); err != nil {
+		return err
+	}
+
+	if err = d.ControlTc(osl.TC_QDISC_ADD, n.minor, 0, 1, n.minor, 0, nil, 0, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *network) deleteTc() error {
+	d, err := n.driver(true)
+	if err != nil {
+		return err
+	}
+
+	if n.networkType != "overlay" {
+		return fmt.Errorf("Driver is not overlay! Could not init class and qdisc for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_QDISC_DEL, n.minor, 0, 1, n.minor, 0, nil, 0, 0); err != nil {
+		return err
+	}
+
+	if err = d.ControlTc(osl.TC_CLASS_DEL, 1, n.minor, 1, 0, 0, nil, 1024*1024*100, 1024*1024*100); err != nil {
+		return err
+	}
+
 	return nil
 }
