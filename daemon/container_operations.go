@@ -988,9 +988,9 @@ func (daemon *Daemon) initializeNetworking(container *container.Container) error
 		return err
 	}
 
-	if err := daemon.allocateTc(container); err != nil {
-		return err
-	}
+	// if err := daemon.allocateTc(container); err != nil {
+	// 	return err
+	// }
 
 	return container.BuildHostnameFile()
 }
@@ -1015,6 +1015,7 @@ func (daemon *Daemon) allocateTc(container *container.Container) error {
 	// for netName, epConf := range container.NetworkSettings.Networks {
 	// 	id := getNetworkID(netName, epConf.EndpointSettings)
 
+	//  RESOLVUTION:add a driver(bool) in network interface method
 	// 	n, err := daemon.FindNetwork(id)
 	// 	if err != nil {
 	// 		return fmt.Errorf("counld not find libnetwork network of this container:TC processing error")
@@ -1053,7 +1054,7 @@ func (daemon *Daemon) allocateTc(container *container.Container) error {
 // var (
 
 // )
-// func generateTcHandle() {
+// func generateTcClassHandle(pmajor uint16) (uint16, error) {
 
 // }
 
