@@ -92,7 +92,7 @@ type Driver interface {
 	NewTc(bandwidth int64) error
 
 	// complete TC functions
-	ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error
+	ControlTc(flag int, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error
 }
 
 // NetworkInfo provides a go interface for drivers to provide network

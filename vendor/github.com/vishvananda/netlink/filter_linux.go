@@ -825,7 +825,7 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, er
 
 	msgs, err := req.Execute(unix.NETLINK_ROUTE, unix.RTM_NEWTFILTER)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	for _, m := range msgs {
@@ -833,7 +833,7 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, er
 
 		attrs, err := nl.ParseRouteAttr(m[msg.Len():])
 		if err != nil {
-			return -1, err
+			return 0, err
 		}
 
 		filterType := ""
@@ -842,9 +842,9 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, er
 			case nl.TCA_KIND:
 				filterType = string(attr.Value[:len(attr.Value)-1])
 			case nl.TCA_OPTIONS:
-				data, err := nl.ParseRouteAttr(attr.value)
+				data, err := nl.ParseRouteAttr(attr.Value)
 				if err != nil {
-					return -1, err
+					return 0, err
 				}
 				switch filterType {
 				case "u32":
@@ -855,13 +855,13 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, er
 							sel := nl.DeserializeTcU32Sel(datum.Value)
 							if native != networkOrder {
 								for i, key := range sel.Keys {
-									sel.Keys[i].Mask = native.Unit32(htonl(key.Mask))
-									sel.Keys[i].Val = native.Unit32(htonl(key.Val))
+									sel.Keys[i].Mask = native.Uint32(htonl(key.Mask))
+									sel.Keys[i].Val = native.Uint32(htonl(key.Val))
 								}
 							}
 							if (sel.Nkeys == 2) &&
 								(sel.Keys[0].Mask == 0x00ffffff) &&
-								(sel.Keys[0].Val == uint32(addr[0]*65536+addr[1]*16+addr[2])) &&
+								(sel.Keys[0].Val == uint32(addr[0])*65536+uint32(addr[1])*256+uin32(addr[2])) &&
 								(sel.Keys[1].Mask == 0xff000000) &&
 								(sel.Keys[1].Val == uint32(addr[3])) {
 								return msg.Handle, nil
@@ -873,5 +873,5 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, er
 		}
 	}
 
-	return -1, fmt.Errorf("could not find handle for this filter")
+	return 0, fmt.Errorf("could not find handle for this filter")
 }

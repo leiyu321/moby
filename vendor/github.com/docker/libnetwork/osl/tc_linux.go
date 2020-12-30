@@ -6,6 +6,8 @@ import (
 
 	"github.com/docker/libnetwork/ns"
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netlink/nl"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -86,13 +88,13 @@ func AddTcBandwidth(addr net.IP, bandwidth uint64) (retErr error) {
 }
 
 const (
-	TC_QDISC_ADD = 1
-	TC_QDISC_DEL
-	TC_CLASS_ADD
-	TC_CLASS_DEL
-	TC_CLASS_CHANGE
-	TC_FILTER_ADD
-	TC_FILTER_DEL
+	TC_QDISC_ADD    = 1
+	TC_QDISC_DEL    = 2
+	TC_CLASS_ADD    = 3
+	TC_CLASS_DEL    = 4
+	TC_CLASS_CHANGE = 5
+	TC_FILTER_ADD   = 6
+	TC_FILTER_DEL   = 7
 )
 
 func ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error {
@@ -115,11 +117,13 @@ func ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint
 	case TC_CLASS_DEL:
 		return DeleteTcClass(ifindex, major, minor)
 	case TC_CLASS_CHANGE:
-		return ChangeTcClass(ifindex, major, minor, pmajor.pminor, rate, ceil)
+		return ChangeTcClass(ifindex, major, minor, pmajor, pminor, rate, ceil)
 	case TC_FILTER_ADD:
 		return AddTcFilter(ifindex, major, minor, pmajor, pminor, priority, caddr)
 	case TC_FILTER_DEL:
 		return DeleteTcFilter(ifindex, pmajor, pminor, caddr)
+	default:
+		return fmt.Errorf("Flag is error! No such function")
 	}
 }
 
@@ -138,24 +142,24 @@ func FindIndexByAddr(addr net.IP) (int, error) {
 	return ifindex, nil
 }
 
-func AddTcQdisc(ifindex int, major, minor uint16, pmajor, pminor uint32) error {
+func AddTcQdisc(ifindex int, major, minor uint16, pmajor, pminor uint16) error {
 	handle := netlink.MakeHandle(major, minor)
 	parent := netlink.MakeHandle(pmajor, pminor)
 	htbqdisc := netlink.NewHtb(netlink.QdiscAttrs{LinkIndex: ifindex, Handle: handle, Parent: parent})
 
-	if err := ns.NlHandle().QdiscAdd(htbqidsc); err != nil {
+	if err := ns.NlHandle().QdiscAdd(htbqdisc); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func DeleteTcQdisc(ifindex int, major, minor uint16, pmajor, pminor uint32) error {
+func DeleteTcQdisc(ifindex int, major, minor uint16, pmajor, pminor uint16) error {
 	handle := netlink.MakeHandle(major, minor)
 	parent := netlink.MakeHandle(pmajor, pminor)
 	htbqdisc := netlink.NewHtb(netlink.QdiscAttrs{LinkIndex: ifindex, Handle: handle, Parent: parent})
 
-	if err := ns.NlHandle().QdiscDel(htbqidsc); err != nil {
+	if err := ns.NlHandle().QdiscDel(htbqdisc); err != nil {
 		return err
 	}
 
@@ -188,7 +192,7 @@ func AddTcClass(ifindex int, major, minor uint16, pmajor, pminor uint16, rate, c
 
 func DeleteTcClass(ifindex int, major, minor uint16) error {
 	classid := netlink.MakeHandle(major, minor)
-	if err := ns.NlHandle().ClassDel(&netlink.HtbClass{LinkIndex: ifindex, Handle: classid}); err != nil {
+	if err := ns.NlHandle().ClassDel(&netlink.HtbClass{ClassAttrs: netlink.ClassAttrs{LinkIndex: ifindex, Handle: classid}}); err != nil {
 		return err
 	}
 
@@ -211,12 +215,14 @@ func ChangeTcClass(ifindex int, major, minor uint16, pmajor, pminor uint16, rate
 func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, priority uint16, addr net.IP) error {
 	classid := netlink.MakeHandle(cmajor, cminor)
 	parent := netlink.MakeHandle(pmajor, pminor)
+	var keys []nl.TcU32Key
+	keys = append(keys, nl.TcU32Key{Mask: 0x00ffffff, Val: uint32(addr[0])*65536 + uint32(addr[1])*256 + uint32(addr[2]), Off: 60})
+	keys = append(keys, nl.TcU32Key{Mask: 0xff000000, Val: uint32(addr[3]), Off: 64})
 	sel := &nl.TcU32Sel{Flags: nl.TC_U32_TERMINAL, Nkeys: 2,
-		Keys: {nl.TcU32Key{Mask: 0x00ffffff, Val: uint32(addr[0]*65536 + addr[1]*16 + addr[2]), Off: 60},
-			nl.TcU32Key{Mask: 0xff000000, Val: uint32(addr[3]), Off: 64}}}
+		Keys: keys}
 
-	u32filter := &netlink.U32{LinkIndex: ifindex, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP,
-		Classid: classid, Sel: sel}
+	u32filter := &netlink.U32{FilteraAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP},
+		ClassId: classid, Sel: sel}
 
 	if err := ns.NlHandle().FilterAdd(u32filter); err != nil {
 		return err
@@ -232,8 +238,11 @@ func DeleteTcFilter(ifindex int, pmajor, pminor uint16, addr net.IP) error {
 	}
 
 	parent := netlink.MakeHandle(pmajor, pminor)
-	handle := ns.NlHandle().HandleByAddr(ifindex, parent, addr)
-	u32filter := &netlink.U32{LinkIndex: ifindex, Handle: handle, Parent: parent}
+	handle, err := ns.NlHandle().HandleByAddr(device, parent, addr)
+	if err != nil {
+		return err
+	}
+	u32filter := &netlink.U32{FilterAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Handle: handle, Parent: parent}}
 
 	if err := ns.NlHandle().FilterDel(u32filter); err != nil {
 		return err
