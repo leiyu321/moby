@@ -1246,8 +1246,8 @@ func (c *controller) cleanupLocalEndpoints() {
 // EndpointBandwidth function returns an option setter for the endpoint TC rate and ceil
 func EndpointBandwidth(bandwidth int64) EndpointOption {
 	return func(ep *endpoint) {
-		ep.rate = bandwidth
-		ep.ceil = bandwidth
+		ep.rate = uint64(bandwidth)
+		ep.ceil = uint64(bandwidth)
 	}
 }
 
@@ -1262,11 +1262,11 @@ func (ep *endpoint) initTc() error {
 		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
 	}
 
-	if err = d.ControlTc(osl.TC_CLASS_ADD, ep.major, ep.minor, 1, n.minor, 0, *(ep.iface.addr), ep.rate, ep.ceil); err != nil {
+	if err = d.ControlTc(osl.TC_CLASS_ADD, ep.major, ep.minor, 1, n.minor, 0, nil, ep.rate, ep.ceil); err != nil {
 		return err
 	}
 
-	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, 1, n.minor, 10, *(ep.iface.addr), 0, 0); err != nil {
+	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, 1, n.minor, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
 
@@ -1284,11 +1284,11 @@ func (ep *endpoint) deleteTc() error {
 		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
 	}
 
-	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, 1, n.minor, 10, *(ep.iface.addr), 0, 0); err != nil {
+	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, 1, n.minor, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
 
-	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, 1, n.minor, 0, *(ep.iface.addr), ep.rate, ep.ceil); err != nil {
+	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, 1, n.minor, 0, nil, ep.rate, ep.ceil); err != nil {
 		return err
 	}
 

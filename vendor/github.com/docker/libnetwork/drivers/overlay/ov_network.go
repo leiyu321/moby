@@ -1169,12 +1169,12 @@ func (d *driver) NewTc(bandwidth int64) error {
 	return nil
 }
 
-func (d *driver) ControlTc(flag int, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil int64) error {
+func (d *driver) ControlTc(flag int, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error {
 	if d.advertiseAddress == "" {
 		return fmt.Errorf("overlaydriver.advertiseaddress is null! Something is wrong")
 	}
 
-	if err := osl.ControlTc(flag, net.ParseIP(d.advertiseAddress), major, minor, pmajor, pminor, priority, caddr, uint64(rate), uint64(ceil)); err != nil {
+	if err := osl.ControlTc(flag, net.ParseIP(d.advertiseAddress), major, minor, pmajor, pminor, priority, caddr, rate, ceil); err != nil {
 		return err
 	}
 

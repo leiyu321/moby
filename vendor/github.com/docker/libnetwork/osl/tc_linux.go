@@ -221,7 +221,7 @@ func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, prio
 	sel := &nl.TcU32Sel{Flags: nl.TC_U32_TERMINAL, Nkeys: 2,
 		Keys: keys}
 
-	u32filter := &netlink.U32{FilteraAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP},
+	u32filter := &netlink.U32{FilterAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP},
 		ClassId: classid, Sel: sel}
 
 	if err := ns.NlHandle().FilterAdd(u32filter); err != nil {
