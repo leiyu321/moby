@@ -832,6 +832,15 @@ func (ep *endpoint) Delete(force bool) error {
 		return fmt.Errorf("failed to get endpoint from store during Delete: %v", err)
 	}
 
+	if ep.rate != 0 && n.networkType == "overlay" {
+		fmt.Println("TC:In deleteendpoint")
+		n.classPool.Put(ep.minor)
+		if err = ep.deleteTc(); err != nil {
+			return err
+		}
+		fmt.Println("TC:After deleteendpoint")
+	}
+
 	ep.Lock()
 	epid := ep.id
 	name := ep.name
@@ -892,13 +901,6 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 
 	if driver == nil {
 		return nil
-	}
-
-	if ep.rate != 0 && n.networkType == "overlay" {
-		n.classPool.Put(ep.minor)
-		if err = ep.deleteTc(); err != nil {
-			return err
-		}
 	}
 
 	if err := driver.DeleteEndpoint(n.id, epid); err != nil {
@@ -1248,6 +1250,7 @@ func EndpointBandwidth(bandwidth int64) EndpointOption {
 	return func(ep *endpoint) {
 		ep.rate = uint64(bandwidth)
 		ep.ceil = uint64(bandwidth)
+		fmt.Println("TC:In endpointbandwidth-%d", bandwidth)
 	}
 }
 
@@ -1262,7 +1265,7 @@ func (ep *endpoint) initTc() error {
 		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
 	}
 
-	if err = d.ControlTc(osl.TC_CLASS_ADD, ep.major, ep.minor, 1, n.minor, 0, nil, ep.rate, ep.ceil); err != nil {
+	if err = d.ControlTc(osl.TC_CLASS_ADD, ep.major, ep.minor, n.minor, 0, 0, nil, ep.rate, ep.ceil); err != nil {
 		return err
 	}
 
@@ -1296,7 +1299,7 @@ func (ep *endpoint) deleteTc() error {
 
 	fmt.Println("TC:After endpoint deleteTC.deletefilter")
 
-	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, 1, n.minor, 0, nil, ep.rate, ep.ceil); err != nil {
+	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, n.minor, 0, 0, nil, ep.rate, ep.ceil); err != nil {
 		return err
 	}
 

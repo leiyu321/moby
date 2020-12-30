@@ -1120,10 +1120,12 @@ func (n *network) deleteNetwork() error {
 	}
 
 	if n.networkType == "overlay" {
+		fmt.Println("TC:In deletenetwork")
 		n.getController().handlePool.Put(n.minor)
 		if err := n.deleteTc(); err != nil {
 			return err
 		}
+		fmt.Println("TC:After deletenetwork")
 	}
 
 	if err := d.DeleteNetwork(n.ID()); err != nil {
@@ -1156,11 +1158,13 @@ func (n *network) addEndpoint(ep *endpoint) error {
 	}
 
 	if ep.rate != 0 && n.networkType == "overlay" {
+		fmt.Println("TC:In addendpoint")
 		ep.major = n.minor
 		ep.minor = n.classPool.Get().(uint16)
 		if err = ep.initTc(); err != nil {
 			return err
 		}
+		fmt.Println("TC:After addendpoint")
 	}
 
 	return nil
