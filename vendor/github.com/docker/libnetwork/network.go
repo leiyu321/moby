@@ -1155,7 +1155,7 @@ func (n *network) addEndpoint(ep *endpoint) error {
 			ep.Name(), n.Name(), err)
 	}
 
-	if n.networkType == "overlay" {
+	if ep.rate != 0 && n.networkType == "overlay" {
 		ep.major = n.minor
 		ep.minor = n.classPool.Get().(uint16)
 		if err = ep.initTc(); err != nil {
@@ -2286,9 +2286,13 @@ func (n *network) initTc() error {
 		return err
 	}
 
+	fmt.Println("TC:After network initTC.addclass")
+
 	if err = d.ControlTc(osl.TC_QDISC_ADD, n.minor, 0, 1, n.minor, 0, nil, 0, 0); err != nil {
 		return err
 	}
+
+	fmt.Println("TC:After network initTC.addqdisc")
 
 	return nil
 }
@@ -2307,9 +2311,13 @@ func (n *network) deleteTc() error {
 		return err
 	}
 
+	fmt.Println("TC:After network deleteTC.deleteqdisc")
+
 	if err = d.ControlTc(osl.TC_CLASS_DEL, 1, n.minor, 1, 0, 0, nil, 1024*1024*100, 1024*1024*100); err != nil {
 		return err
 	}
+
+	fmt.Println("TC:After network deleteTC.deleteclass")
 
 	return nil
 }

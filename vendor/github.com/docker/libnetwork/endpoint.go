@@ -894,7 +894,7 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 		return nil
 	}
 
-	if n.networkType == "overlay" {
+	if ep.rate != 0 && n.networkType == "overlay" {
 		n.classPool.Put(ep.minor)
 		if err = ep.deleteTc(); err != nil {
 			return err
@@ -1266,9 +1266,15 @@ func (ep *endpoint) initTc() error {
 		return err
 	}
 
-	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, 1, n.minor, 10, ep.iface.addr.IP, 0, 0); err != nil {
+	fmt.Println("TC:After endpoint initTC.addclass")
+
+	// filter added to root would bring huge performance degradation
+	// TODO: add a filter for each overlay network
+	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, 1, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
+
+	fmt.Println("TC:After endpoint initTC.addfilter")
 
 	return nil
 }
@@ -1284,13 +1290,17 @@ func (ep *endpoint) deleteTc() error {
 		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
 	}
 
-	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, 1, n.minor, 10, ep.iface.addr.IP, 0, 0); err != nil {
+	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, 1, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
+
+	fmt.Println("TC:After endpoint deleteTC.deletefilter")
 
 	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, 1, n.minor, 0, nil, ep.rate, ep.ceil); err != nil {
 		return err
 	}
+
+	fmt.Println("TC:After endpoint deleteTC.deleteclass")
 
 	return nil
 }

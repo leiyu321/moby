@@ -121,7 +121,7 @@ func ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint
 	case TC_FILTER_ADD:
 		return AddTcFilter(ifindex, major, minor, pmajor, pminor, priority, caddr)
 	case TC_FILTER_DEL:
-		return DeleteTcFilter(ifindex, pmajor, pminor, caddr)
+		return DeleteTcFilter(ifindex, pmajor, pminor, priority, caddr)
 	default:
 		return fmt.Errorf("Flag is error! No such function")
 	}
@@ -231,7 +231,7 @@ func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, prio
 	return nil
 }
 
-func DeleteTcFilter(ifindex int, pmajor, pminor uint16, addr net.IP) error {
+func DeleteTcFilter(ifindex int, pmajor, pminor uint16, priority uint16, addr net.IP) error {
 	device, err := ns.NlHandle().LinkByIndex(ifindex)
 	if err != nil {
 		return err
@@ -242,7 +242,8 @@ func DeleteTcFilter(ifindex int, pmajor, pminor uint16, addr net.IP) error {
 	if err != nil {
 		return err
 	}
-	u32filter := &netlink.U32{FilterAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Handle: handle, Parent: parent}}
+	fmt.Println("TC:in DeleteTcFilter--after handlebyaddr:%x", handle)
+	u32filter := &netlink.U32{FilterAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Handle: handle, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP}}
 
 	if err := ns.NlHandle().FilterDel(u32filter); err != nil {
 		return err

@@ -1033,11 +1033,13 @@ func (c *controller) addNetwork(n *network) error {
 	n.startResolver()
 
 	if n.networkType == "overlay" {
+		fmt.Println("TC:in addnetwork")
 		n.minor = c.handlePool.Get().(uint16)
 		n.initClassPool()
 		if err := n.initTc(); err != nil {
 			return err
 		}
+		fmt.Println("TC:after addnetwork")
 	}
 
 	return nil
