@@ -1257,6 +1257,8 @@ func (n *network) createEndpoint(name string, options ...EndpointOption) (Endpoi
 		}
 	}()
 
+	fmt.Println("TC: In createedpoint----beforeupdatetostore")
+	fmt.Println(string(ep.Value()))
 	// We should perform updateToStore call right after addEndpoint
 	// in order to have iface properly configured
 	if err = n.getController().updateToStore(ep); err != nil {
@@ -1269,6 +1271,9 @@ func (n *network) createEndpoint(name string, options ...EndpointOption) (Endpoi
 			}
 		}
 	}()
+	tempep, _ := n.getEndpointFromStore(ep.ID())
+	fmt.Println("TC: In createendpoint----afterupdatetostore")
+	fmt.Println(string(tempep.Value()))
 
 	if err = ep.assignAddress(ipam, false, n.enableIPv6 && n.postIPv6); err != nil {
 		return nil, err

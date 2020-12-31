@@ -107,6 +107,10 @@ func (ep *endpoint) MarshalJSON() ([]byte, error) {
 	epMap["ingressPorts"] = ep.ingressPorts
 	epMap["svcAliases"] = ep.svcAliases
 	epMap["loadBalancer"] = ep.loadBalancer
+	epMap["major"] = ep.major
+	epMap["minor"] = ep.minor
+	epMap["rate"] = ep.rate
+	epMap["ceil"] = ep.ceil
 
 	return json.Marshal(epMap)
 }
@@ -121,6 +125,10 @@ func (ep *endpoint) UnmarshalJSON(b []byte) (err error) {
 	}
 	ep.name = epMap["name"].(string)
 	ep.id = epMap["id"].(string)
+	ep.major = epMap["major"].(uint16)
+	ep.minor = epMap["minor"].(uint16)
+	ep.rate = epMap["rate"].(uint64)
+	ep.ceil = epMap["ceil"].(uint64)
 
 	ib, _ := json.Marshal(epMap["ep_iface"])
 	json.Unmarshal(ib, &ep.iface)
@@ -453,10 +461,12 @@ func (ep *endpoint) sbJoin(sb *sandbox, options ...EndpointOption) (err error) {
 		return fmt.Errorf("failed to get network from store during join: %v", err)
 	}
 
+	fmt.Println("TC: In sbjoin before getfromstore----ep.rate:%d", ep.rate)
 	ep, err = n.getEndpointFromStore(ep.ID())
 	if err != nil {
 		return fmt.Errorf("failed to get endpoint from store during join: %v", err)
 	}
+	fmt.Println("TC: In sbjoin after getfromstore----ep.rate:%d", ep.rate)
 
 	ep.Lock()
 	if ep.sandboxID != "" {
@@ -722,6 +732,7 @@ func (ep *endpoint) sbLeave(sb *sandbox, force bool, options ...EndpointOption) 
 	if err != nil {
 		return fmt.Errorf("failed to get endpoint from store during leave: %v", err)
 	}
+	fmt.Println("TC: In sbleave----ep.rate:%d", ep.rate)
 
 	ep.Lock()
 	sid := ep.sandboxID
@@ -831,15 +842,7 @@ func (ep *endpoint) Delete(force bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to get endpoint from store during Delete: %v", err)
 	}
-
-	if ep.rate != 0 && n.networkType == "overlay" {
-		fmt.Println("TC:In deleteendpoint")
-		n.classPool.Put(ep.minor)
-		if err = ep.deleteTc(); err != nil {
-			return err
-		}
-		fmt.Println("TC:After deleteendpoint")
-	}
+	fmt.Println("TC: In ep.delete----ep.rate:%d", ep.rate)
 
 	ep.Lock()
 	epid := ep.id
@@ -893,6 +896,16 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 	name := ep.name
 	epid := ep.id
 	ep.Unlock()
+
+	fmt.Println("TC: In deleteendpoint----ep.rate:%d", ep.rate)
+	if ep.rate != 0 && n.networkType == "overlay" {
+		fmt.Println("TC:In deleteendpoint")
+		n.classPool.Put(ep.minor)
+		if err = ep.deleteTc(); err != nil {
+			return err
+		}
+		fmt.Println("TC:After deleteendpoint")
+	}
 
 	driver, err := n.driver(!force)
 	if err != nil {
