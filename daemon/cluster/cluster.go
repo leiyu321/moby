@@ -55,6 +55,7 @@ import (
 	executorpkg "github.com/docker/docker/daemon/cluster/executor"
 	"github.com/docker/docker/pkg/signal"
 	lncluster "github.com/docker/libnetwork/cluster"
+	"github.com/docker/libnetwork/osl"
 	swarmapi "github.com/docker/swarmkit/api"
 	swarmnode "github.com/docker/swarmkit/node"
 	"github.com/pkg/errors"
@@ -246,7 +247,24 @@ func (c *Cluster) newNodeRunner(conf nodeStartConfig) (*nodeRunner, error) {
 
 	c.config.Backend.DaemonJoinsCluster(c)
 
+	if err := setTcQdiscRoot(actualLocalAddr); err != nil {
+		return nil, err
+	}
+
 	return nr, nil
+}
+
+func setTcQdiscRoot(actuallocaladdr string) error {
+	if err := osl.ControlTc(osl.TC_QDISC_ADD, net.ParseIP(actuallocaladdr), 1, 0, 0xffff, 0xffff, 0, nil, 0, 0); err != nil {
+		return err
+	}
+	return nil
+}
+func clearTcQdiscRoot(actuallocaladdr string) error {
+	if err := osl.ControlTc(osl.TC_QDISC_DEL, net.ParseIP(actuallocaladdr), 1, 0, 0xffff, 0xffff, 0, nil, 0, 0); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Cluster) getRequestContext() (context.Context, func()) { // TODO: not needed when requests don't block on qourum lost

@@ -371,6 +371,10 @@ func (c *Cluster) Leave(force bool) error {
 
 	c.mu.Unlock()
 
+	if err := clearTcQdiscRoot(nr.actualLocalAddr); err != nil {
+		return err
+	}
+
 	if errors.Is(state.err, errSwarmLocked) && !force {
 		// leave a locked swarm without --force is not allowed
 		return errors.WithStack(notAvailableError("Swarm is encrypted and locked. Please unlock it first or use `--force` to ignore this message."))
