@@ -125,10 +125,19 @@ func (ep *endpoint) UnmarshalJSON(b []byte) (err error) {
 	}
 	ep.name = epMap["name"].(string)
 	ep.id = epMap["id"].(string)
-	ep.major = epMap["major"].(uint16)
-	ep.minor = epMap["minor"].(uint16)
-	ep.rate = epMap["rate"].(uint64)
-	ep.ceil = epMap["ceil"].(uint64)
+	// ep.major = epMap["major"].(uint16)
+	// ep.minor = epMap["minor"].(uint16)
+	// ep.rate = epMap["rate"].(uint64)
+	// ep.ceil = epMap["ceil"].(uint64)
+
+	mmajor, _ := json.Marshal(epMap["major"])
+	json.Unmarshal(mmajor, &ep.major)
+	mminor, _ := json.Marshal(epMap["minor"])
+	json.Unmarshal(mminor, &ep.minor)
+	rrate, _ := json.Marshal(epMap["rate"])
+	json.Unmarshal(rrate, &ep.rate)
+	cceil, _ := json.Marshal(epMap["ceil"])
+	json.Unmarshal(cceil, &ep.ceil)
 
 	ib, _ := json.Marshal(epMap["ep_iface"])
 	json.Unmarshal(ib, &ep.iface)
@@ -257,6 +266,10 @@ func (ep *endpoint) CopyTo(o datastore.KVObject) error {
 	dstEp.svcID = ep.svcID
 	dstEp.virtualIP = ep.virtualIP
 	dstEp.loadBalancer = ep.loadBalancer
+	dstEp.major = ep.major
+	dstEp.minor = ep.minor
+	dstEp.rate = ep.rate
+	dstEp.ceil = ep.ceil
 
 	dstEp.svcAliases = make([]string, len(ep.svcAliases))
 	copy(dstEp.svcAliases, ep.svcAliases)
@@ -897,6 +910,15 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 	epid := ep.id
 	ep.Unlock()
 
+	driver, err := n.driver(!force)
+	if err != nil {
+		return fmt.Errorf("failed to delete endpoint: %v", err)
+	}
+
+	if driver == nil {
+		return nil
+	}
+
 	fmt.Println("TC: In deleteendpoint----ep.rate:%d", ep.rate)
 	if ep.rate != 0 && n.networkType == "overlay" {
 		fmt.Println("TC:In deleteendpoint")
@@ -905,15 +927,6 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 			return err
 		}
 		fmt.Println("TC:After deleteendpoint")
-	}
-
-	driver, err := n.driver(!force)
-	if err != nil {
-		return fmt.Errorf("failed to delete endpoint: %v", err)
-	}
-
-	if driver == nil {
-		return nil
 	}
 
 	if err := driver.DeleteEndpoint(n.id, epid); err != nil {
