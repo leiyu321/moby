@@ -1299,7 +1299,7 @@ func (ep *endpoint) initTc() error {
 
 	// filter added to root would bring huge performance degradation
 	// TODO: add a filter for each overlay network
-	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, 1, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
+	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, n.minor, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
 
@@ -1319,7 +1319,7 @@ func (ep *endpoint) deleteTc() error {
 		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
 	}
 
-	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, 1, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
+	if err = d.ControlTc(osl.TC_FILTER_DEL, ep.major, ep.minor, n.minor, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
 

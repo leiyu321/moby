@@ -88,13 +88,15 @@ func AddTcBandwidth(addr net.IP, bandwidth uint64) (retErr error) {
 }
 
 const (
-	TC_QDISC_ADD    = 1
-	TC_QDISC_DEL    = 2
-	TC_CLASS_ADD    = 3
-	TC_CLASS_DEL    = 4
-	TC_CLASS_CHANGE = 5
-	TC_FILTER_ADD   = 6
-	TC_FILTER_DEL   = 7
+	TC_QDISC_ADD          = 1
+	TC_QDISC_DEL          = 2
+	TC_CLASS_ADD          = 3
+	TC_CLASS_DEL          = 4
+	TC_CLASS_CHANGE       = 5
+	TC_FILTER_ADD         = 6
+	TC_FILTER_DEL         = 7
+	TC_NETWORK_FILTER_ADD = 8
+	TC_NETWORK_FILTER_DEL = 9
 )
 
 func ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint16, priority uint16, caddr net.IP, rate, ceil uint64) error {
@@ -119,9 +121,13 @@ func ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint
 	case TC_CLASS_CHANGE:
 		return ChangeTcClass(ifindex, major, minor, pmajor, pminor, rate, ceil)
 	case TC_FILTER_ADD:
-		return AddTcFilter(ifindex, major, minor, pmajor, pminor, priority, caddr)
+		return AddTcFilter(ifindex, major, minor, pmajor, pminor, priority, caddr, 2)
 	case TC_FILTER_DEL:
-		return DeleteTcFilter(ifindex, pmajor, pminor, priority, caddr)
+		return DeleteTcFilter(ifindex, pmajor, pminor, priority, caddr, 2)
+	case TC_NETWORK_FILTER_ADD:
+		return AddTcFilter(ifindex, major, minor, pmajor, pminor, priority, caddr, 1)
+	case TC_NETWORK_FILTER_DEL:
+		return DeleteTcFilter(ifindex, pmajor, pminor, priority, caddr, 1)
 	default:
 		return fmt.Errorf("Flag is error! No such function")
 	}
@@ -212,12 +218,16 @@ func ChangeTcClass(ifindex int, major, minor uint16, pmajor, pminor uint16, rate
 	return nil
 }
 
-func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, priority uint16, addr net.IP) error {
+func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, priority uint16, addr net.IP, netorep int) error {
 	classid := netlink.MakeHandle(cmajor, cminor)
 	parent := netlink.MakeHandle(pmajor, pminor)
 	var keys []nl.TcU32Key
 	keys = append(keys, nl.TcU32Key{Mask: 0x0000ffff, Val: uint32(addr[0])<<8 + uint32(addr[1]), Off: 60})
-	keys = append(keys, nl.TcU32Key{Mask: 0xffff0000, Val: (uint32(addr[2])<<24 + uint32(addr[3])<<16, Off: 64})
+	if netorep == 1 {
+		keys = append(keys, nl.TcU32Key{Mask: 0xff000000, Val: uint32(addr[2]) << 24, Off: 64})
+	} else if netorep == 2 {
+		keys = append(keys, nl.TcU32Key{Mask: 0xffff0000, Val: uint32(addr[2])<<24 + uint32(addr[3])<<16, Off: 64})
+	}
 	sel := &nl.TcU32Sel{Flags: nl.TC_U32_TERMINAL, Nkeys: 2,
 		Keys: keys}
 
@@ -231,14 +241,14 @@ func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, prio
 	return nil
 }
 
-func DeleteTcFilter(ifindex int, pmajor, pminor uint16, priority uint16, addr net.IP) error {
+func DeleteTcFilter(ifindex int, pmajor, pminor uint16, priority uint16, addr net.IP, netorip int) error {
 	device, err := ns.NlHandle().LinkByIndex(ifindex)
 	if err != nil {
 		return err
 	}
 
 	parent := netlink.MakeHandle(pmajor, pminor)
-	handle, err := ns.NlHandle().HandleByAddr(device, parent, addr)
+	handle, err := ns.NlHandle().HandleByAddr(device, parent, addr, netorip)
 	if err != nil {
 		return err
 	}

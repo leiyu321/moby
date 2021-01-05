@@ -2303,6 +2303,11 @@ func (n *network) initTc() error {
 
 	fmt.Println("TC:After network initTC.addqdisc")
 
+	if err = d.ControlTc(osl.TC_NETWORK_FILTER_ADD, 1, n.minor, 1, 0, 10, n.ipamV4Config[0].Gateway, 0, 0); err != nil {
+		return err
+	}
+	fmt.Println("TC:After network initTC.addfilter")
+
 	return nil
 }
 
@@ -2314,6 +2319,10 @@ func (n *network) deleteTc() error {
 
 	if n.networkType != "overlay" {
 		return fmt.Errorf("Driver is not overlay! Could not init class and qdisc for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_NETWORK_FILTER_DEL, 1, n.minor, 1, 0, 10, n.ipamV4Config[0].Gateway, 0, 0); err != nil {
+		return err
 	}
 
 	if err = d.ControlTc(osl.TC_QDISC_DEL, n.minor, 0, 1, n.minor, 0, nil, 0, 0); err != nil {

@@ -1032,7 +1032,7 @@ func (c *controller) addNetwork(n *network) error {
 
 	n.startResolver()
 
-	if n.networkType == "overlay" {
+	if n.networkType == "overlay" && len(n.ipamV4Config) != 0 {
 		fmt.Println("TC:in addnetwork")
 		n.minor = c.handlePool.Get().(uint16)
 		n.initClassPool()
