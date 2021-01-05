@@ -860,10 +860,10 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP) (uint32, er
 								}
 							}
 							if (sel.Nkeys == 2) &&
-								(sel.Keys[0].Mask == 0x00ffffff) &&
-								(sel.Keys[0].Val == uint32(addr[0])*65536+uint32(addr[1])*256+uint32(addr[2])) &&
-								(sel.Keys[1].Mask == 0xff000000) &&
-								(sel.Keys[1].Val == uint32(addr[3])) {
+								(sel.Keys[0].Mask == 0x0000ffff) &&
+								(sel.Keys[0].Val == uint32(addr[0])<<8+uint32(addr[1])) &&
+								(sel.Keys[1].Mask == 0xffff0000) &&
+								(sel.Keys[1].Val == uint32(addr[2])<<24+uint32(addr[3])<<16) {
 								return msg.Handle, nil
 							}
 						}

@@ -255,12 +255,14 @@ func (c *Cluster) newNodeRunner(conf nodeStartConfig) (*nodeRunner, error) {
 }
 
 func setTcQdiscRoot(actuallocaladdr string) error {
+	fmt.Println("TC: In setrootqdisc")
 	if err := osl.ControlTc(osl.TC_QDISC_ADD, net.ParseIP(actuallocaladdr), 1, 0, 0xffff, 0xffff, 0, nil, 0, 0); err != nil {
 		return err
 	}
 	return nil
 }
 func clearTcQdiscRoot(actuallocaladdr string) error {
+	fmt.Println("TC: In clearrootqdisc")
 	if err := osl.ControlTc(osl.TC_QDISC_DEL, net.ParseIP(actuallocaladdr), 1, 0, 0xffff, 0xffff, 0, nil, 0, 0); err != nil {
 		return err
 	}

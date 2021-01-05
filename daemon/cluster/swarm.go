@@ -371,9 +371,10 @@ func (c *Cluster) Leave(force bool) error {
 
 	c.mu.Unlock()
 
-	if err := clearTcQdiscRoot(nr.actualLocalAddr); err != nil {
-		return err
-	}
+	actuallocaladdr := nr.actualLocalAddr
+	// if err := clearTcQdiscRoot(nr.actualLocalAddr); err != nil {
+	// 	return err
+	// }
 
 	if errors.Is(state.err, errSwarmLocked) && !force {
 		// leave a locked swarm without --force is not allowed
@@ -428,6 +429,11 @@ func (c *Cluster) Leave(force bool) error {
 		return err
 	}
 	c.config.Backend.DaemonLeavesCluster()
+
+	if err := clearTcQdiscRoot(actuallocaladdr); err != nil {
+		return err
+	}
+
 	return nil
 }
 

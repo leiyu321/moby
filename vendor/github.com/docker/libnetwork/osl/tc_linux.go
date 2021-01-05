@@ -216,8 +216,8 @@ func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, prio
 	classid := netlink.MakeHandle(cmajor, cminor)
 	parent := netlink.MakeHandle(pmajor, pminor)
 	var keys []nl.TcU32Key
-	keys = append(keys, nl.TcU32Key{Mask: 0x00ffffff, Val: uint32(addr[0])*65536 + uint32(addr[1])*256 + uint32(addr[2]), Off: 60})
-	keys = append(keys, nl.TcU32Key{Mask: 0xff000000, Val: uint32(addr[3]), Off: 64})
+	keys = append(keys, nl.TcU32Key{Mask: 0x0000ffff, Val: uint32(addr[0])<<8 + uint32(addr[1]), Off: 60})
+	keys = append(keys, nl.TcU32Key{Mask: 0xffff0000, Val: (uint32(addr[2])<<24 + uint32(addr[3])<<16, Off: 64})
 	sel := &nl.TcU32Sel{Flags: nl.TC_U32_TERMINAL, Nkeys: 2,
 		Keys: keys}
 
