@@ -224,6 +224,7 @@ func AddTcFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16, prio
 	var keys []nl.TcU32Key
 	keys = append(keys, nl.TcU32Key{Mask: 0x0000ffff, Val: uint32(addr[0])<<8 + uint32(addr[1]), Off: 60})
 	if netorep == 1 {
+		fmt.Printf("%x\t%x\t%x\t%x\n", addr[0], addr[1], addr[2], addr[3])
 		keys = append(keys, nl.TcU32Key{Mask: 0xff000000, Val: uint32(addr[2]) << 24, Off: 64})
 	} else if netorep == 2 {
 		keys = append(keys, nl.TcU32Key{Mask: 0xffff0000, Val: uint32(addr[2])<<24 + uint32(addr[3])<<16, Off: 64})
