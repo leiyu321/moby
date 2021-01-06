@@ -862,7 +862,7 @@ func (h *Handle) HandleByAddr(link Link, parent uint32, addr net.IP, netorep int
 							if (sel.Nkeys == 2) &&
 								(sel.Keys[0].Mask == 0x0000ffff) &&
 								(sel.Keys[0].Val == uint32(addr[0])<<8+uint32(addr[1])) &&
-								((netorep == 2) && ((sel.Keys[1].Mask == 0xffff0000) && (sel.Keys[1].Val == uint32(addr[2])<<24+uint32(addr[3])<<16)) ||
+								(((netorep == 2) && (sel.Keys[1].Mask == 0xffff0000) && (sel.Keys[1].Val == uint32(addr[2])<<24+uint32(addr[3])<<16)) ||
 									((netorep == 1) && (sel.Keys[1].Mask == 0xff000000) && (sel.Keys[1].Val == uint32(addr[2])<<24))) {
 								return msg.Handle, nil
 							}
