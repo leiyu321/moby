@@ -80,6 +80,7 @@ type endpoint struct {
 	minor             uint16
 	rate              uint64
 	ceil              uint64
+	fmode             string
 	sync.Mutex
 }
 
@@ -111,6 +112,7 @@ func (ep *endpoint) MarshalJSON() ([]byte, error) {
 	epMap["minor"] = ep.minor
 	epMap["rate"] = ep.rate
 	epMap["ceil"] = ep.ceil
+	epMap["fmode"] = ep.fmode
 
 	return json.Marshal(epMap)
 }
@@ -138,6 +140,9 @@ func (ep *endpoint) UnmarshalJSON(b []byte) (err error) {
 	json.Unmarshal(rrate, &ep.rate)
 	cceil, _ := json.Marshal(epMap["ceil"])
 	json.Unmarshal(cceil, &ep.ceil)
+	if ffmode, ok := epMap["fmode"]; ok {
+		ep.fmode = ffmode.(string)
+	}
 
 	ib, _ := json.Marshal(epMap["ep_iface"])
 	json.Unmarshal(ib, &ep.iface)
@@ -270,6 +275,7 @@ func (ep *endpoint) CopyTo(o datastore.KVObject) error {
 	dstEp.minor = ep.minor
 	dstEp.rate = ep.rate
 	dstEp.ceil = ep.ceil
+	dstEp.fmode = ep.fmode
 
 	dstEp.svcAliases = make([]string, len(ep.svcAliases))
 	copy(dstEp.svcAliases, ep.svcAliases)
@@ -922,9 +928,16 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 	fmt.Println("TC: In deleteendpoint----ep.rate:%d", ep.rate)
 	if ep.rate != 0 && n.networkType == "overlay" {
 		fmt.Println("TC:In deleteendpoint")
-		n.classPool.Put(ep.minor)
-		if err = ep.deleteTc(); err != nil {
-			return err
+		if ep.fmode == "u32" {
+			n.classPool.Put(ep.minor)
+			if err = ep.deleteTc(); err != nil {
+				return err
+			}
+		} else if ep.fmode == "cgroup" {
+			n.getController().handlePool.Put(ep.minor)
+			if err = ep.deleteCgroupTc(); err != nil {
+				return err
+			}
 		}
 		fmt.Println("TC:After deleteendpoint")
 	}
@@ -1271,12 +1284,13 @@ func (c *controller) cleanupLocalEndpoints() {
 	}
 }
 
-// EndpointBandwidth function returns an option setter for the endpoint TC rate and ceil
-func EndpointBandwidth(bandwidth int64) EndpointOption {
+// EndpointBandwidthFmode function returns an option setter for the endpoint TC rate and ceil
+func EndpointBandwidthFmode(bandwidth int64, fmode string) EndpointOption {
 	return func(ep *endpoint) {
 		ep.rate = uint64(bandwidth)
 		ep.ceil = uint64(bandwidth)
-		fmt.Println("TC:In endpointbandwidth-%d", bandwidth)
+		ep.fmode = fmode
+		fmt.Println("TC:In endpointbandwidth-%d;;fmode-%s", bandwidth, fmode)
 	}
 }
 
@@ -1297,13 +1311,30 @@ func (ep *endpoint) initTc() error {
 
 	fmt.Println("TC:After endpoint initTC.addclass")
 
-	// filter added to root would bring huge performance degradation
-	// TODO: add a filter for each overlay network
 	if err = d.ControlTc(osl.TC_FILTER_ADD, ep.major, ep.minor, n.minor, 0, 10, ep.iface.addr.IP, 0, 0); err != nil {
 		return err
 	}
 
 	fmt.Println("TC:After endpoint initTC.addfilter")
+
+	return nil
+}
+
+func (ep *endpoint) initCgroupTc() error {
+	n := ep.getNetwork()
+	d, err := n.driver(true)
+	if err != nil {
+		return err
+	}
+
+	if n.networkType != "overlay" {
+		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_CLASS_ADD, ep.major, ep.minor, 1, 0, 0, nil, ep.rate, ep.ceil); err != nil {
+		return err
+	}
+	fmt.Println("TC:After endpoint initTC.addcgroupclass")
 
 	return nil
 }
@@ -1330,6 +1361,25 @@ func (ep *endpoint) deleteTc() error {
 	}
 
 	fmt.Println("TC:After endpoint deleteTC.deleteclass")
+
+	return nil
+}
+
+func (ep *endpoint) deleteCgroupTc() error {
+	n := ep.getNetwork()
+	d, err := n.driver(true)
+	if err != nil {
+		return err
+	}
+
+	if n.networkType != "overlay" {
+		return fmt.Errorf("Driver is not overlay! Could not init class and filter for TC")
+	}
+
+	if err = d.ControlTc(osl.TC_CLASS_DEL, ep.major, ep.minor, 1, 0, 0, nil, ep.rate, ep.ceil); err != nil {
+		return err
+	}
+	fmt.Println("TC:After endpoint deleteTC.deletecgroupclass")
 
 	return nil
 }

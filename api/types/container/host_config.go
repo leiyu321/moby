@@ -445,6 +445,11 @@ type HostConfig struct {
 	//bandwidth for each container
 	Bandwidth int64
 
+	//tc filter mode
+	Fmode string
+
+	Classid uint32
+
 	// Run a custom init inside the container, if null, use the daemon's configured settings
 	Init *bool `json:",omitempty"`
 }

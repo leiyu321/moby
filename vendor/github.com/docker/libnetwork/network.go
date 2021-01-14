@@ -1159,10 +1159,18 @@ func (n *network) addEndpoint(ep *endpoint) error {
 
 	if ep.rate != 0 && n.networkType == "overlay" {
 		fmt.Println("TC:In addendpoint")
-		ep.major = n.minor
-		ep.minor = n.classPool.Get().(uint16)
-		if err = ep.initTc(); err != nil {
-			return err
+		if ep.fmode == "u32" {
+			ep.major = n.minor
+			ep.minor = n.classPool.Get().(uint16)
+			if err = ep.initTc(); err != nil {
+				return err
+			}
+		} else if ep.fmode == "cgroup" {
+			ep.major = 1
+			ep.minor = n.ctrlr.handlePool.Get().(uint16)
+			if err = ep.initCgroupTc(); err != nil {
+				return err
+			}
 		}
 		fmt.Println("TC:After addendpoint")
 	}

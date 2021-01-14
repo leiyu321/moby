@@ -957,9 +957,11 @@ func buildCreateEndpointOptions(c *container.Container, n libnetwork.Network, ep
 		libnetwork.CreateOptionPortMapping(pbList),
 		libnetwork.CreateOptionExposedPorts(exposeList))
 
-	if c.HostConfig.Bandwidth != 0 && n.Type() == "overlay" {
+	if c.HostConfig.Bandwidth != 0 &&
+		((n.Type() == "overlay" && c.HostConfig.Fmode == "u32") ||
+			c.HostConfig.fmode == "cgroup") {
 		createOptions = append(createOptions,
-			libnetwork.EndpointBandwidth(c.HostConfig.Bandwidth))
+			libnetwork.EndpointBandwidthFmode(c.HostConfig.Bandwidth, c.HostConfig.Fmode))
 	}
 
 	return createOptions, nil

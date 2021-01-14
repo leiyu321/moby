@@ -259,11 +259,17 @@ func setTcQdiscRoot(actuallocaladdr string) error {
 	if err := osl.ControlTc(osl.TC_QDISC_ADD, net.ParseIP(actuallocaladdr), 1, 0, 0xffff, 0xffff, 0, nil, 0, 0); err != nil {
 		return err
 	}
+	if err := osl.ControlTc(osl.TC_CGROUP_FILTER_ADD, net.ParseIP(actuallocaladdr), 1, 1, 1, 0, 9, nil, 0, 0); err != nil {
+		return err
+	}
 	return nil
 }
 func clearTcQdiscRoot(actuallocaladdr string) error {
 	fmt.Println("TC: In clearrootqdisc")
 	if err := osl.ControlTc(osl.TC_QDISC_DEL, net.ParseIP(actuallocaladdr), 1, 0, 0xffff, 0xffff, 0, nil, 0, 0); err != nil {
+		return err
+	}
+	if err := osl.ControlTc(osl.TC_CGROUP_FILTER_DEL, net.ParseIP(actuallocaladdr), 1, 1, 1, 0, 9, nil, 0, 0); err != nil {
 		return err
 	}
 	return nil
