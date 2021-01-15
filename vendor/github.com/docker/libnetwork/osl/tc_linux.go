@@ -131,9 +131,9 @@ func ControlTc(flag int, ifaddr net.IP, major, minor uint16, pmajor, pminor uint
 	case TC_NETWORK_FILTER_DEL:
 		return DeleteTcFilter(ifindex, pmajor, pminor, priority, caddr, 1)
 	case TC_CGROUP_FILTER_ADD:
-		return AddTcCgroupFilter(ifindex,cmajor,cminor,pmajor,pminor,priority)
+		return AddTcCgroupFilter(ifindex, major, minor, pmajor, pminor, priority)
 	case TC_CGROUP_FILTER_DEL:
-		retrun DeleteTcCgroupFilter(ifindex,pmajor,pminor,priority)
+		return DeleteTcCgroupFilter(ifindex, pmajor, pminor, priority)
 	default:
 		return fmt.Errorf("Flag is error! No such function")
 	}
@@ -273,7 +273,7 @@ func AddTcCgroupFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16
 	handle := netlink.MakeHandle(cmajor, cminor)
 	parent := netlink.MakeHandle(pmajor, pminor)
 	cgroupfilter := &netlink.GenericFilter{FilterAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Handle: handle, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP},
-		filterType: "cgroup"}
+		FilterType: "cgroup"}
 
 	if err := ns.NlHandle().FilterAdd(cgroupfilter); err != nil {
 		return err
@@ -283,9 +283,9 @@ func AddTcCgroupFilter(ifindex int, cmajor, cminor uint16, pmajor, pminor uint16
 }
 
 func DeleteTcCgroupFilter(ifindex int, pmajor, pminor uint16, priority uint16) error {
-	parent := netlink.MakeHandle(pamjor, pminor)
+	parent := netlink.MakeHandle(pmajor, pminor)
 	cgroupfilter := &netlink.GenericFilter{FilterAttrs: netlink.FilterAttrs{LinkIndex: ifindex, Handle: 0, Parent: parent, Priority: priority, Protocol: unix.ETH_P_IP},
-		filterType: "cgroup"}
+		FilterType: "cgroup"}
 
 	if err := ns.NlHandle().FilterDel(cgroupfilter); err != nil {
 		return err

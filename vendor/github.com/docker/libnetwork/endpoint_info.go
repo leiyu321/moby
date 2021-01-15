@@ -34,6 +34,8 @@ type EndpointInfo interface {
 
 	// LoadBalancer returns whether the endpoint is the load balancer endpoint for the network.
 	LoadBalancer() bool
+
+	Classid() uint32
 }
 
 // InterfaceInfo provides an interface to retrieve interface addresses bound to the endpoint.
@@ -455,5 +457,16 @@ func (epj *endpointJoinInfo) CopyTo(dstEpj *endpointJoinInfo) error {
 	copy(dstEpj.driverTableEntries, epj.driverTableEntries)
 	dstEpj.gw = types.GetIPCopy(epj.gw)
 	dstEpj.gw6 = types.GetIPCopy(epj.gw6)
+	return nil
+}
+
+func (ep *endpoint) Classid() uint32 {
+	ep.Lock()
+	defer ep.Unlock()
+
+	if ep.major != 0 && ep.minor != 0 {
+		return uint32(ep.major)<<16 + uint32(ep.minor)
+	}
+
 	return nil
 }

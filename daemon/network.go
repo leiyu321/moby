@@ -959,7 +959,7 @@ func buildCreateEndpointOptions(c *container.Container, n libnetwork.Network, ep
 
 	if c.HostConfig.Bandwidth != 0 &&
 		((n.Type() == "overlay" && c.HostConfig.Fmode == "u32") ||
-			c.HostConfig.fmode == "cgroup") {
+			c.HostConfig.Fmode == "cgroup") {
 		createOptions = append(createOptions,
 			libnetwork.EndpointBandwidthFmode(c.HostConfig.Bandwidth, c.HostConfig.Fmode))
 	}

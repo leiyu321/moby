@@ -307,6 +307,11 @@ func (daemon *Daemon) updateEndpointNetworkSettings(container *container.Contain
 		container.NetworkSettings.Bridge = daemon.configStore.BridgeConfig.Iface
 	}
 
+	if container.HostConfig.Fmode == "cgroup" && container.HostConfig.Bandwidth != 0 && n.Type() == "overlay" {
+		container.HostConfig.Classid = ep.Info().Classid()
+		fmt.Println("TC: container.hostconfig.classid=%x",container.HostConfig.Classid)
+	}
+
 	return nil
 }
 
