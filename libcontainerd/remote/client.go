@@ -3,6 +3,7 @@ package remote // import "github.com/docker/docker/libcontainerd/remote"
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -200,6 +201,7 @@ func (c *client) Start(ctx context.Context, id, checkpointDir string, withStdin 
 	}
 	bundle := labels[DockerContainerBundlePath]
 	uid, gid := getSpecUser(spec)
+	fmt.Println("TC:In libcontainerd.remote.start:", *(spec.Linux.Resources.Network.ClassID))
 
 	taskOpts := []containerd.NewTaskOpts{
 		func(_ context.Context, _ *containerd.Client, info *containerd.TaskInfo) error {

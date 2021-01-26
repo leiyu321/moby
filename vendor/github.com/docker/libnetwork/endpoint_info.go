@@ -468,5 +468,5 @@ func (ep *endpoint) Classid() uint32 {
 		return uint32(ep.major)<<16 + uint32(ep.minor)
 	}
 
-	return nil
+	return 0
 }

@@ -980,6 +980,14 @@ func WithResources(c *container.Container) coci.SpecOpts {
 			specResources.Devices = s.Linux.Resources.Devices
 		}
 
+		if c.HostConfig.Classid > 0 {
+			//classid:=c.HostConfig.Classid
+			specResources.Network = &specs.LinuxNetwork{
+				ClassID: &(c.HostConfig.Classid),
+			}
+		}
+		fmt.Println("TC:In withresources:", *(specResources.Network.ClassID))
+		
 		s.Linux.Resources = specResources
 		return nil
 	}
