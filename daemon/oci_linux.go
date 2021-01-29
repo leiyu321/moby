@@ -985,9 +985,9 @@ func WithResources(c *container.Container) coci.SpecOpts {
 			specResources.Network = &specs.LinuxNetwork{
 				ClassID: &(c.HostConfig.Classid),
 			}
+			fmt.Println("TC:In withresources:", *(specResources.Network.ClassID))
 		}
-		fmt.Println("TC:In withresources:", *(specResources.Network.ClassID))
-		
+
 		s.Linux.Resources = specResources
 		return nil
 	}

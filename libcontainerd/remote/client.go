@@ -201,7 +201,9 @@ func (c *client) Start(ctx context.Context, id, checkpointDir string, withStdin 
 	}
 	bundle := labels[DockerContainerBundlePath]
 	uid, gid := getSpecUser(spec)
-	fmt.Println("TC:In libcontainerd.remote.start:", *(spec.Linux.Resources.Network.ClassID))
+	if spec.Linux.Resources.Network != nil && spec.Linux.Resources.Network.ClassID != nil {
+		fmt.Println("TC:In libcontainerd.remote.start:", *(spec.Linux.Resources.Network.ClassID))
+	}
 
 	taskOpts := []containerd.NewTaskOpts{
 		func(_ context.Context, _ *containerd.Client, info *containerd.TaskInfo) error {
