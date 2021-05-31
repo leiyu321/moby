@@ -1072,10 +1072,12 @@ func (c *controller) trafficControlInit(n *network) error {
 		"ifaddr": c.agent.advertiseAddr,
 	}
 
+	fmt.Println("TC: before inittrafficcontroldrivers")
 	if err := initTrafficControlDrivers(c.drvRegistry, config); err != nil {
 		//logrus.Errorf("TC: Fail to init traffic control managers")
 		return err
 	}
+	fmt.Println("TC: after inittrafficcontroldrivers")
 
 	return nil
 }

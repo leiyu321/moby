@@ -321,5 +321,6 @@ func (r *DrvRegistry) TcDrivers() int {
 	// 		break
 	// 	}
 	// }
+	fmt.Println(r.tcmanagerDrivers)
 	return len(r.tcmanagerDrivers)
 }
