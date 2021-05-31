@@ -464,9 +464,10 @@ func (ep *endpoint) Classid() uint32 {
 	ep.Lock()
 	defer ep.Unlock()
 
-	if ep.major != 0 && ep.minor != 0 {
-		return uint32(ep.major)<<16 + uint32(ep.minor)
-	}
+	// if ep.major != 0 && ep.minor != 0 {
+	// 	return uint32(ep.major)<<16 + uint32(ep.minor)
+	// }
 
-	return 0
+	// return 0
+	return ep.classid
 }

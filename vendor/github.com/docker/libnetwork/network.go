@@ -1121,10 +1121,15 @@ func (n *network) deleteNetwork() error {
 
 	if n.networkType == "overlay" {
 		fmt.Println("TC:In deletenetwork")
-		n.getController().handlePool.Put(n.minor)
-		if err := n.deleteTc(); err != nil {
+		// n.getController().handlePool.Put(n.minor)
+		// if err := n.deleteTc(); err != nil {
+		// 	return err
+		// }
+		tcdriver, _ := n.getController().drvRegistry.TcDriver("sample")
+		if err := tcdriver.DeleteNetwork(n.id); err != nil {
 			return err
 		}
+
 		fmt.Println("TC:After deletenetwork")
 	}
 
@@ -1159,19 +1164,25 @@ func (n *network) addEndpoint(ep *endpoint) error {
 
 	if ep.rate != 0 && n.networkType == "overlay" {
 		fmt.Println("TC:In addendpoint")
-		if ep.fmode == "u32" {
-			ep.major = n.minor
-			ep.minor = n.classPool.Get().(uint16)
-			if err = ep.initTc(); err != nil {
-				return err
-			}
-		} else if ep.fmode == "cgroup" {
-			ep.major = 1
-			ep.minor = n.ctrlr.handlePool.Get().(uint16)
-			if err = ep.initCgroupTc(); err != nil {
-				return err
-			}
+		// if ep.fmode == "u32" {
+		// 	ep.major = n.minor
+		// 	ep.minor = n.classPool.Get().(uint16)
+		// 	if err = ep.initTc(); err != nil {
+		// 		return err
+		// 	}
+		// } else if ep.fmode == "cgroup" {
+		// 	ep.major = 1
+		// 	ep.minor = n.ctrlr.handlePool.Get().(uint16)
+		// 	if err = ep.initCgroupTc(); err != nil {
+		// 		return err
+		// 	}
+		// }
+		tcdriver, _ := n.getController().drvRegistry.TcDriver("sample")
+		if err := tcdriver.CreateEndpoint(n.id, ep.id, ep.iface.addr.IP, ep.rate, ep.ceil); err != nil {
+			return err
 		}
+		ep.classid = tcdriver.GetEndpointClassid(n.id, ep.id)
+
 		fmt.Println("TC:After addendpoint")
 	}
 

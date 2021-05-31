@@ -81,6 +81,7 @@ type endpoint struct {
 	rate              uint64
 	ceil              uint64
 	fmode             string
+	classid           uint32
 	sync.Mutex
 }
 
@@ -928,17 +929,22 @@ func (ep *endpoint) deleteEndpoint(force bool) error {
 	fmt.Println("TC: In deleteendpoint----ep.rate:%d", ep.rate)
 	if ep.rate != 0 && n.networkType == "overlay" {
 		fmt.Println("TC:In deleteendpoint")
-		if ep.fmode == "u32" {
-			n.classPool.Put(ep.minor)
-			if err = ep.deleteTc(); err != nil {
-				return err
-			}
-		} else if ep.fmode == "cgroup" {
-			n.getController().handlePool.Put(ep.minor)
-			if err = ep.deleteCgroupTc(); err != nil {
-				return err
-			}
+		// if ep.fmode == "u32" {
+		// 	n.classPool.Put(ep.minor)
+		// 	if err = ep.deleteTc(); err != nil {
+		// 		return err
+		// 	}
+		// } else if ep.fmode == "cgroup" {
+		// 	n.getController().handlePool.Put(ep.minor)
+		// 	if err = ep.deleteCgroupTc(); err != nil {
+		// 		return err
+		// 	}
+		// }
+		tcdriver, _ := n.getController().drvRegistry.TcDriver("sample")
+		if err := tcdriver.DeleteEndpoint(n.id, ep.id); err != nil {
+			return err
 		}
+
 		fmt.Println("TC:After deleteendpoint")
 	}
 

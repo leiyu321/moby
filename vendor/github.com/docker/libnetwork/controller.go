@@ -259,7 +259,7 @@ func New(cfgOptions ...config.Option) (NetworkController, error) {
 		return nil, err
 	}
 
-	c.initHandlerPool()
+	//c.initHandlerPool()
 
 	setupArrangeUserFilterRule(c)
 	return c, nil
@@ -1034,12 +1034,47 @@ func (c *controller) addNetwork(n *network) error {
 
 	if n.networkType == "overlay" && len(n.ipamV4Config) != 0 {
 		fmt.Println("TC:in addnetwork")
-		n.minor = c.handlePool.Get().(uint16)
-		n.initClassPool()
-		if err := n.initTc(); err != nil {
+		// n.minor = c.handlePool.Get().(uint16)
+		// n.initClassPool()
+		// if err := n.initTc(); err != nil {
+		// 	return err
+		// }
+		if err := c.trafficControlInit(n); err != nil {
 			return err
 		}
+
+		tcdriver, _ := c.drvRegistry.TcDriver("sample")
+		if err := tcdriver.CreateNetwork(n.id, 200*1024*1024, 200*1024*1024); err != nil {
+			return err
+		}
+
 		fmt.Println("TC:after addnetwork")
+	}
+
+	return nil
+}
+
+func (c *controller) trafficControlInit(n *network) error {
+	if c.drvRegistry.TcDrivers() != 0 {
+		return nil
+	}
+
+	if n.networkType != "overlay" {
+		return nil
+	}
+
+	// d,err:=n.driver(true)
+	// if err!=nil{
+	// 	return err
+	// }
+
+	config := map[string]string{
+		"ifaddr": c.agent.advertiseAddr,
+	}
+
+	if err := initTrafficControlDrivers(c.drvRegistry, config); err != nil {
+		//logrus.Errorf("TC: Fail to init traffic control managers")
+		return err
 	}
 
 	return nil

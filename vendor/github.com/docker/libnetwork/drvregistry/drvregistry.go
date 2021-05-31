@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/pkg/plugingetter"
 	"github.com/docker/libnetwork/driverapi"
 	"github.com/docker/libnetwork/ipamapi"
+	"github.com/docker/libnetwork/tcmanagerapi"
 	"github.com/docker/libnetwork/types"
 )
 
@@ -24,17 +25,24 @@ type ipamData struct {
 	defaultLocalAddressSpace, defaultGlobalAddressSpace string
 }
 
+type tcmanagerData struct {
+	driver     tcmanagerapi.TcManager
+	capability tcmanagerapi.Capability
+}
+
 type driverTable map[string]*driverData
 type ipamTable map[string]*ipamData
+type tcmanagerTable map[string]*tcmanagerData
 
 // DrvRegistry holds the registry of all network drivers and IPAM drivers that it knows about.
 type DrvRegistry struct {
 	sync.Mutex
-	drivers      driverTable
-	ipamDrivers  ipamTable
-	dfn          DriverNotifyFunc
-	ifn          IPAMNotifyFunc
-	pluginGetter plugingetter.PluginGetter
+	drivers          driverTable
+	ipamDrivers      ipamTable
+	tcmanagerDrivers tcmanagerTable
+	dfn              DriverNotifyFunc
+	ifn              IPAMNotifyFunc
+	pluginGetter     plugingetter.PluginGetter
 }
 
 // Functors definition
@@ -57,11 +65,12 @@ type DriverNotifyFunc func(name string, driver driverapi.Driver, capability driv
 // New returns a new driver registry handle.
 func New(lDs, gDs interface{}, dfn DriverNotifyFunc, ifn IPAMNotifyFunc, pg plugingetter.PluginGetter) (*DrvRegistry, error) {
 	r := &DrvRegistry{
-		drivers:      make(driverTable),
-		ipamDrivers:  make(ipamTable),
-		dfn:          dfn,
-		ifn:          ifn,
-		pluginGetter: pg,
+		drivers:          make(driverTable),
+		ipamDrivers:      make(ipamTable),
+		tcmanagerDrivers: make(tcmanagerTable),
+		dfn:              dfn,
+		ifn:              ifn,
+		pluginGetter:     pg,
 	}
 
 	return r, nil
@@ -225,4 +234,92 @@ func (r *DrvRegistry) RegisterIpamDriver(name string, driver ipamapi.Ipam) error
 // RegisterIpamDriverWithCapabilities registers the IPAM driver discovered with specified capabilities.
 func (r *DrvRegistry) RegisterIpamDriverWithCapabilities(name string, driver ipamapi.Ipam, caps *ipamapi.Capability) error {
 	return r.registerIpamDriver(name, driver, caps)
+}
+
+// func (r *DrvRegistry) WalkTcDrivers(dfn DriverWalkFunc) {
+// 	type driverVal struct {
+// 		name string
+// 		data *driverData
+// 	}
+
+// 	r.Lock()
+// 	dvl := make([]driverVal, 0, len(r.drivers))
+// 	for k, v := range r.drivers {
+// 		dvl = append(dvl, driverVal{name: k, data: v})
+// 	}
+// 	r.Unlock()
+
+// 	for _, dv := range dvl {
+// 		if dfn(dv.name, dv.data.driver, dv.data.capability) {
+// 			break
+// 		}
+// 	}
+// }
+
+func (r *DrvRegistry) registerTcManagerDriver(name string, driver tcmanagerapi.TcManager, capability tcmanagerapi.Capability) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("tcmanager driver name string cannot be empty")
+	}
+
+	r.Lock()
+	_, ok := r.tcmanagerDrivers[name]
+	r.Unlock()
+	if ok {
+		return types.ForbiddenErrorf("tcmanager driver %q already registered", name)
+	}
+
+	// locAS, glbAS, err := driver.GetDefaultAddressSpaces()
+	// if err != nil {
+	// 	return types.InternalErrorf("ipam driver %q failed to return default address spaces: %v", name, err)
+	// }
+
+	// if r.ifn != nil {
+	// 	if err := r.ifn(name, driver, caps); err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	r.Lock()
+	//r.ipamDrivers[name] = &ipamData{driver: driver, defaultLocalAddressSpace: locAS, defaultGlobalAddressSpace: glbAS, capability: caps}
+	r.tcmanagerDrivers[name] = &tcmanagerData{driver: driver, capability: capability}
+	r.Unlock()
+
+	return nil
+}
+
+func (r *DrvRegistry) RegisterTcManagerDriver(name string, driver tcmanagerapi.TcManager, capability tcmanagerapi.Capability) error {
+	return r.registerTcManagerDriver(name, driver, capability)
+}
+
+func (r *DrvRegistry) TcDriver(name string) (tcmanagerapi.TcManager, *tcmanagerapi.Capability) {
+	r.Lock()
+	defer r.Unlock()
+
+	d, ok := r.tcmanagerDrivers[name]
+	if !ok {
+		return nil, nil
+	}
+
+	return d.driver, &d.capability
+}
+
+func (r *DrvRegistry) TcDrivers() int {
+	// type driverVal struct {
+	// 	name string
+	// 	data *driverData
+	// }
+
+	// r.Lock()
+	// dvl := make([]driverVal, 0, len(r.drivers))
+	// for k, v := range r.drivers {
+	// 	dvl = append(dvl, driverVal{name: k, data: v})
+	// }
+	// r.Unlock()
+
+	// for _, dv := range dvl {
+	// 	if dfn(dv.name, dv.data.driver, dv.data.capability) {
+	// 		break
+	// 	}
+	// }
+	return len(r.tcmanagerDrivers)
 }
