@@ -26,6 +26,7 @@ type network struct {
 	id        uint16
 	rate      uint64
 	ceil      uint64
+	naddr     net.IP
 	eps       map[string]*endpoint
 	classPool *sync.Pool
 	sync.Mutex
@@ -66,12 +67,13 @@ func (m *tcmanager) Type() string {
 	return tcmanagertype
 }
 
-func (m *tcmanager) CreateNetwork(id string, rate, ceil uint64) error {
+func (m *tcmanager) CreateNetwork(id string, naddr net.IP, rate, ceil uint64) error {
 	net := &network{
-		id:   m.handlePool.Get().(uint16),
-		rate: rate,
-		ceil: ceil,
-		eps:  make(map[string]*endpoint),
+		id:    m.handlePool.Get().(uint16),
+		rate:  rate,
+		ceil:  ceil,
+		naddr: naddr,
+		eps:   make(map[string]*endpoint),
 	}
 	var i uint16 = 0
 	net.classPool = &sync.Pool{
@@ -93,7 +95,7 @@ func (m *tcmanager) CreateNetwork(id string, rate, ceil uint64) error {
 	}
 	fmt.Println("TC: after add cgroup filter for endpoints")
 
-	if err := osl.ControlTc(osl.TC_NETWORK_FILTER_ADD, m.ifaddr, 1, net.id, 1, 0, 10, m.ifaddr, 0, 0); err != nil {
+	if err := osl.ControlTc(osl.TC_NETWORK_FILTER_ADD, m.ifaddr, 1, net.id, 1, 0, 10, naddr, 0, 0); err != nil {
 		return err
 	}
 	fmt.Println("TC: after add u32 filter for network")
@@ -125,7 +127,7 @@ func (m *tcmanager) DeleteNetwork(id string) error {
 	m.Unlock()
 
 	fmt.Println("TC: in tcmanager.deletenetwork")
-	if err := osl.ControlTc(osl.TC_FILTER_DEL, m.ifaddr, 1, net.id, 1, 0, 10, m.ifaddr, 0, 0); err != nil {
+	if err := osl.ControlTc(osl.TC_NETWORK_FILTER_DEL, m.ifaddr, 1, net.id, 1, 0, 10, net.naddr, 0, 0); err != nil {
 		return err
 	}
 	fmt.Println("TC: after delete u32 filter for network")

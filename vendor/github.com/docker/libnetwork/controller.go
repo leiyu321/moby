@@ -1044,7 +1044,7 @@ func (c *controller) addNetwork(n *network) error {
 		}
 
 		tcdriver, _ := c.drvRegistry.TcDriver("sample")
-		if err := tcdriver.CreateNetwork(n.id, 200*1024*1024, 200*1024*1024); err != nil {
+		if err := tcdriver.CreateNetwork(n.id, net.ParseIP(n.ipamV4Config[0].Gateway).To4(), 200*1024*1024, 200*1024*1024); err != nil {
 			return err
 		}
 

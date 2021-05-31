@@ -27,7 +27,7 @@ func (m *tcmanager) Type() string {
 	return tcmanagertype
 }
 
-func (m *tcmanager) CreateNetwork(id string, rate, ceil uint64) error {
+func (m *tcmanager) CreateNetwork(id string, naddr net.IP, rate, ceil uint64) error {
 	return nil
 }
 

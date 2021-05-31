@@ -16,7 +16,7 @@ type TcManager interface {
 	discoverapi.Discover
 
 	Type() string
-	CreateNetwork(id string, rate, ceil uint64) error
+	CreateNetwork(id string, naddr net.IP, rate, ceil uint64) error
 	ChangeNetwork(id string, rate, ceil uint64) error
 	DeleteNetwork(id string) error
 	CreateEndpoint(nid, id string, caddr net.IP, rate, ceil uint64) error

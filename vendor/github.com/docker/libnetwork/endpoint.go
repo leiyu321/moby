@@ -114,6 +114,7 @@ func (ep *endpoint) MarshalJSON() ([]byte, error) {
 	epMap["rate"] = ep.rate
 	epMap["ceil"] = ep.ceil
 	epMap["fmode"] = ep.fmode
+	epMap["classid"] = ep.classid
 
 	return json.Marshal(epMap)
 }
@@ -144,6 +145,8 @@ func (ep *endpoint) UnmarshalJSON(b []byte) (err error) {
 	if ffmode, ok := epMap["fmode"]; ok {
 		ep.fmode = ffmode.(string)
 	}
+	cclassid, _ := json.Marshal(epMap["classid"])
+	json.Unmarshal(cclassid, &ep.classid)
 
 	ib, _ := json.Marshal(epMap["ep_iface"])
 	json.Unmarshal(ib, &ep.iface)
@@ -277,6 +280,7 @@ func (ep *endpoint) CopyTo(o datastore.KVObject) error {
 	dstEp.rate = ep.rate
 	dstEp.ceil = ep.ceil
 	dstEp.fmode = ep.fmode
+	dstEp.classid = ep.classid
 
 	dstEp.svcAliases = make([]string, len(ep.svcAliases))
 	copy(dstEp.svcAliases, ep.svcAliases)
